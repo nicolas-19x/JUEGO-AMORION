@@ -1,0 +1,42 @@
+{
+ "items": [
+  {
+   "id": "house_cottage",
+   "name": "Casa de campo",
+   "category": "edificio",
+   "sprite": "res://assets/buildings/house_cottage.png",
+   "anchor": [
+    52,
+    107
+   ],
+   "footprint": [
+    6,
+    3
+   ],
+   "collision": [
+    -48,
+    -40,
+    96,
+    40
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "night_overlay": "res://assets/buildings/house_cottage_glow.png",
+   "light": {
+    "offset": [
+     0,
+     -40
+    ],
+    "scale": 1.6,
+    "color": "#ffcf80",
+    "energy": 0.7
+   },
+   "chimney": [
+    22,
+    -104
+   ]
+  }
+ ]
+}

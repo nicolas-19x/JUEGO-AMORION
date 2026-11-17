@@ -1,0 +1,104 @@
+{
+ "items": [
+  {
+   "id": "rock_big",
+   "name": "Roca grande",
+   "category": "roca",
+   "sprite": "res://assets/environment/rock_big.png",
+   "anchor": [
+    13,
+    15
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -11,
+    -8,
+    22,
+    8
+   ],
+   "surfaces": [
+    "grass",
+    "sand",
+    "dirt"
+   ]
+  },
+  {
+   "id": "rock_small",
+   "name": "Piedra",
+   "category": "roca",
+   "sprite": "res://assets/environment/rock_small.png",
+   "anchor": [
+    7,
+    8
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -5,
+    -4,
+    10,
+    4
+   ],
+   "surfaces": [
+    "grass",
+    "sand",
+    "dirt"
+   ]
+  },
+  {
+   "id": "driftwood",
+   "name": "Madera a la deriva",
+   "category": "playa",
+   "sprite": "res://assets/environment/driftwood.png",
+   "anchor": [
+    15,
+    7
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -12,
+    -4,
+    24,
+    4
+   ],
+   "surfaces": [
+    "sand"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Mirar",
+    "text": "Un tronco pulido por el mar. Quién sabe de qué costa viene."
+   }
+  },
+  {
+   "id": "shell",
+   "name": "Caracola",
+   "category": "playa",
+   "sprite": "res://assets/environment/shell.png",
+   "anchor": [
+    4,
+    4
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "sand"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Escuchar",
+    "text": "Si la acercas al oído, se oye el mar. Aunque el mar esté justo ahí."
+   }
+  }
+ ]
+}

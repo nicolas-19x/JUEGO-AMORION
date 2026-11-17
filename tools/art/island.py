@@ -63,11 +63,15 @@ def make():
     # mirador: plataforma de adoquín sobre el promontorio
     blob(41.5, 7.5, 2.6, 1.9, COBBLE)
     # muelle de madera en el lago
-    for y in range(24, 27):
-        for x in range(9, 11):
+    # muelle: entra al lago desde la orilla sur
+    for y in range(25, 30):
+        for x in range(11, 13):
             g[y][x] = WOOD
-    for x in range(9, 13):
-        g[27][x] = WOOD if g[27][x] in (WATER, GRASS) else g[27][x]
+    # sin charcos sueltos: el agua aislada de una celda se vuelve césped
+    for y in range(1, H - 1):
+        for x in range(1, W - 1):
+            if g[y][x] == WATER and sum(g[y + dy][x + dx] != WATER for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) >= 3:
+                g[y][x] = GRASS
     # patio de tierra delante de la casa y huerto/jardín
     for y in range(14, 16):
         for x in range(14, 22):
@@ -91,9 +95,9 @@ def make():
         put(f, 9 + (i % 3), 14 + (i // 3))
     for x in range(8, 13):
         put("fence", x, 17)
-    put("fence", 8, 16)
-    put("fence", 8, 15)
-    put("fence", 8, 14)
+    put("fence_v", 8, 16)
+    put("fence_v", 8, 15)
+    put("fence_v", 8, 14)
     put("bush_round", 12, 12)
     put("tree_blossom", 7, 10)
     # plaza
@@ -116,10 +120,10 @@ def make():
     put("reeds", 9, 23)
     put("reeds", 17, 24)
     put("reeds", 16, 27)
-    put("lily_pad", 12, 25)
+    put("lily_pad", 14, 24)
     put("lily_pad", 15, 26)
     put("lily_pad", 13, 28)
-    put("bench", 11, 21)
+    put("bench", 10, 21)
     put("tree_oak", 18, 22)
     # playa
     put("driftwood", 42, 31)

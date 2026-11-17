@@ -1,0 +1,52 @@
+{
+ "materials": [
+  {
+   "id": "water",
+   "walkable": false
+  },
+  {
+   "id": "sand",
+   "atlas": "res://assets/environment/terrain_sand.png",
+   "under": [],
+   "walkable": true,
+   "footstep": "sand"
+  },
+  {
+   "id": "grass",
+   "atlas": "res://assets/environment/terrain_grass.png",
+   "under": [
+    "sand"
+   ],
+   "walkable": true,
+   "footstep": "grass",
+   "decorated_chance": 0.18
+  },
+  {
+   "id": "dirt",
+   "atlas": "res://assets/environment/terrain_dirt.png",
+   "under": [
+    "sand",
+    "grass"
+   ],
+   "walkable": true,
+   "footstep": "dirt"
+  },
+  {
+   "id": "cobble",
+   "atlas": "res://assets/environment/terrain_cobble.png",
+   "under": [
+    "sand",
+    "grass"
+   ],
+   "walkable": true,
+   "footstep": "stone"
+  },
+  {
+   "id": "wood",
+   "atlas": "res://assets/environment/terrain_wood.png",
+   "under": [],
+   "walkable": true,
+   "footstep": "wood"
+  }
+ ]
+}

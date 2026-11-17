@@ -20,7 +20,13 @@ ROWS = 4
 
 
 def _edt(inside):
-    """Distancia euclídea con signo (negativa dentro) por fuerza bruta (rasters pequeños)."""
+    """Distancia euclídea con signo (negativa dentro)."""
+    try:
+        from scipy.ndimage import distance_transform_edt as dte
+
+        return np.where(inside, -dte(inside) + 0.5, dte(~inside) - 0.5)
+    except ImportError:
+        pass
     h, w = inside.shape
     ys, xs = np.mgrid[0:h, 0:w]
     pts_in = np.stack([ys[inside], xs[inside]], 1)
@@ -39,6 +45,7 @@ def _edt(inside):
 
 
 _mask_cache = {}
+_field_cache = {}
 
 
 def shape_mask(cfg, phase, roundness, noise_amp, noise_seed):
@@ -60,16 +67,17 @@ def shape_mask(cfg, phase, roundness, noise_amp, noise_seed):
     elif cfg == 15:
         m = np.ones((T, T), bool)
     else:
-        d = _edt(inside)
         r = roundness
-        # cierre (redondea esquinas cóncavas) y apertura (redondea convexas)
-        if r > 0:
-            closed = _edt(d <= r) <= -r
-            ero = _edt(closed) <= -r
-            opened = _edt(ero) <= r
-            d3 = _edt(opened)
-        else:
-            d3 = d
+        if (cfg, r) not in _field_cache:
+            d = _edt(inside)
+            if r > 0:
+                # cierre (redondea esquinas cóncavas) y apertura (redondea convexas)
+                closed = _edt(d <= r) <= -r
+                ero = _edt(closed) <= -r
+                opened = _edt(ero) <= r
+                d = _edt(opened)
+            _field_cache[(cfg, r)] = d
+        d3 = _field_cache[(cfg, r)]
         px, py = phase % 2, phase // 2
         nz = periodic_noise(PERIOD, 4, noise_seed, octaves=2)
         m = np.zeros((T, T), bool)
@@ -230,10 +238,10 @@ def decorate_grass(base, seed):
 # ------------------------------------------------------------- materiales
 MATERIALS = {
     # nombre: (relleno, redondez, ruido, estilo de borde)
-    "sand": dict(fill=fill_sand, round=3, noise=1.6, style="shore"),
-    "grass": dict(fill=fill_grass, round=3, noise=1.3, style="raised"),
-    "dirt": dict(fill=fill_dirt, round=3, noise=1.0, style="sunken"),
-    "cobble": dict(fill=fill_cobble, round=2, noise=0.4, style="curb"),
+    "sand": dict(fill=fill_sand, round=8, noise=1.6, style="shore"),
+    "grass": dict(fill=fill_grass, round=8, noise=1.3, style="raised"),
+    "dirt": dict(fill=fill_dirt, round=8, noise=1.0, style="sunken"),
+    "cobble": dict(fill=fill_cobble, round=7, noise=0.4, style="curb"),
     "wood": dict(fill=fill_wood, round=0, noise=0.0, style="deck"),
 }
 

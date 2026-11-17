@@ -45,6 +45,8 @@ RAMPS = {
     "cloth_navy": ["#151a30", "#1f2a48", "#2e3f66", "#46598a", "#6b80ad"],
     "cloth_mustard": ["#4d3520", "#7b5528", "#a87a33", "#d2a547", "#ecc96d"],
     "cloth_denim": ["#18223a", "#243556", "#344d78", "#4b6a98", "#7090bb"],
+    "eye_dark": ["#231a2b", "#3a2a3e", "#5a4660", "#8a7a92", "#ffffff"],
+    "eye_green": ["#1a2a24", "#2a4a3a", "#3f6e52", "#7fa88a", "#ffffff"],
     "shoe_brown": ["#211616", "#3b2621", "#5c3d31", "#80583f"],
     "shoe_white": ["#4f4c5a", "#8b8896", "#c8c5cc", "#f0eef0"],
     # Flores y acentos

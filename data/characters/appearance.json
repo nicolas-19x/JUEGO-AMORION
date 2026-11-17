@@ -1,0 +1,77 @@
+{
+ "presets": [
+  {
+   "id": "a",
+   "name": "Personaje A",
+   "layers": {
+    "body": "skin_a",
+    "eyes": "eye_dark",
+    "pants": "cloth_denim",
+    "shoes": "shoe_brown",
+    "shirt": "cloth_sage",
+    "hair": "hair_brown"
+   },
+   "hair_style": "short"
+  },
+  {
+   "id": "b",
+   "name": "Personaje B",
+   "layers": {
+    "body": "skin_c",
+    "eyes": "eye_dark",
+    "pants": "cloth_cream",
+    "shoes": "shoe_white",
+    "shirt": "cloth_rose",
+    "hair": "hair_auburn"
+   },
+   "hair_style": "long"
+  }
+ ],
+ "layer_order": [
+  "body",
+  "eyes",
+  "pants",
+  "shoes",
+  "shirt",
+  "hair"
+ ],
+ "options": {
+  "body": [
+   "skin_a",
+   "skin_b",
+   "skin_c"
+  ],
+  "eyes": [
+   "eye_dark",
+   "eye_green"
+  ],
+  "hair": [
+   "hair_brown",
+   "hair_black",
+   "hair_auburn",
+   "hair_blonde"
+  ],
+  "hair_style": [
+   "short",
+   "long"
+  ],
+  "shirt": [
+   "cloth_sage",
+   "cloth_rose",
+   "cloth_cream",
+   "cloth_navy",
+   "cloth_mustard",
+   "cloth_denim"
+  ],
+  "pants": [
+   "cloth_denim",
+   "cloth_navy",
+   "cloth_cream",
+   "cloth_sage"
+  ],
+  "shoes": [
+   "shoe_brown",
+   "shoe_white"
+  ]
+ }
+}

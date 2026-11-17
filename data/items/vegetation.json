@@ -1,0 +1,399 @@
+{
+ "items": [
+  {
+   "id": "tree_oak",
+   "name": "Roble",
+   "category": "arbol",
+   "sprite": "res://assets/vegetation/tree_oak.png",
+   "anchor": [
+    20,
+    48
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -6,
+    -6,
+    12,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.5,
+    "height_px": 40
+   },
+   "description": "Un roble joven. Da una sombra muy agradable a mediodía."
+  },
+  {
+   "id": "tree_oak_teal",
+   "name": "Roble azulado",
+   "category": "arbol",
+   "sprite": "res://assets/vegetation/tree_oak_b.png",
+   "anchor": [
+    20,
+    48
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -6,
+    -6,
+    12,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.5,
+    "height_px": 40
+   }
+  },
+  {
+   "id": "tree_blossom",
+   "name": "Cerezo en flor",
+   "category": "arbol",
+   "sprite": "res://assets/vegetation/tree_blossom.png",
+   "anchor": [
+    20,
+    48
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -5,
+    -6,
+    10,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.5,
+    "height_px": 40
+   },
+   "emitter": "petals",
+   "description": "Suelta pétalos con la brisa. Nadie sabe cuándo dejará de florecer."
+  },
+  {
+   "id": "tree_pine",
+   "name": "Pino",
+   "category": "arbol",
+   "sprite": "res://assets/vegetation/tree_pine.png",
+   "anchor": [
+    16,
+    52
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -4,
+    -5,
+    8,
+    5
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "sway": {
+    "strength": 0.4,
+    "height_px": 44
+   }
+  },
+  {
+   "id": "tree_palm",
+   "name": "Palmera",
+   "category": "arbol",
+   "sprite": "res://assets/vegetation/tree_palm.png",
+   "anchor": [
+    21,
+    51
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -3,
+    -4,
+    7,
+    4
+   ],
+   "surfaces": [
+    "sand",
+    "grass"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 40
+   }
+  },
+  {
+   "id": "bush_round",
+   "name": "Arbusto",
+   "category": "arbusto",
+   "sprite": "res://assets/vegetation/bush_round.png",
+   "anchor": [
+    10,
+    15
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -6,
+    16,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "sway": {
+    "strength": 0.3,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "bush_berry",
+   "name": "Arbusto de bayas",
+   "category": "arbusto",
+   "sprite": "res://assets/vegetation/bush_berry.png",
+   "anchor": [
+    10,
+    15
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -6,
+    16,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "sway": {
+    "strength": 0.3,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "grass_tuft",
+   "name": "Mata de hierba",
+   "category": "hierba",
+   "sprite": "res://assets/vegetation/grass_tuft.png",
+   "anchor": [
+    6,
+    9
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass"
+   ],
+   "sway": {
+    "strength": 1.0,
+    "height_px": 10
+   }
+  },
+  {
+   "id": "wildflowers",
+   "name": "Flores silvestres",
+   "category": "hierba",
+   "sprite": "res://assets/vegetation/wildflowers.png",
+   "anchor": [
+    6,
+    9
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass"
+   ],
+   "sway": {
+    "strength": 1.0,
+    "height_px": 10
+   }
+  },
+  {
+   "id": "reeds",
+   "name": "Juncos",
+   "category": "agua",
+   "sprite": "res://assets/vegetation/reeds.png",
+   "anchor": [
+    7,
+    21
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "sand",
+    "water"
+   ],
+   "sway": {
+    "strength": 1.0,
+    "height_px": 22
+   }
+  },
+  {
+   "id": "lily_pad",
+   "name": "Nenúfar",
+   "category": "agua",
+   "sprite": "res://assets/vegetation/lily_pad.png",
+   "anchor": [
+    8,
+    6
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "water"
+   ],
+   "bob": true
+  },
+  {
+   "id": "flower_red",
+   "name": "Flores rojas",
+   "category": "flor",
+   "sprite": "res://assets/vegetation/flower_red.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "flower_yellow",
+   "name": "Flores amarillas",
+   "category": "flor",
+   "sprite": "res://assets/vegetation/flower_yellow.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "flower_lilac",
+   "name": "Flores lilas",
+   "category": "flor",
+   "sprite": "res://assets/vegetation/flower_lilac.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "flower_white",
+   "name": "Flores blancas",
+   "category": "flor",
+   "sprite": "res://assets/vegetation/flower_white.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   }
+  },
+  {
+   "id": "flower_blue",
+   "name": "Flores azules",
+   "category": "flor",
+   "sprite": "res://assets/vegetation/flower_blue.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   }
+  }
+ ]
+}
