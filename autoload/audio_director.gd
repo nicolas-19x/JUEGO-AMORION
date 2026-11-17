@@ -84,7 +84,8 @@ func _play_loop(player: AudioStreamPlayer, sound: String, volume_db: float) -> v
 		var wav := stream as AudioStreamWAV
 		wav.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		wav.loop_begin = 0
-		wav.loop_end = wav.data.size() / 2  # 16 bits mono
+		# en muestras (no en bytes: Godot puede comprimir el WAV al importarlo)
+		wav.loop_end = int(wav.get_length() * wav.mix_rate)
 	player.stream = stream
 	player.volume_db = volume_db
 	player.play()
