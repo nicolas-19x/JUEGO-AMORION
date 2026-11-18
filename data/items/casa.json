@@ -3,7 +3,8 @@
   {
    "id": "house_cottage",
    "name": "Casa de campo",
-   "category": "edificio",
+   "tab": "casa",
+   "category": "casa",
    "sprite": "res://assets/buildings/house_cottage.png",
    "anchor": [
     52,
@@ -23,6 +24,8 @@
     "grass",
     "dirt"
    ],
+   "in_catalog": false,
+   "unique": true,
    "night_overlay": "res://assets/buildings/house_cottage_glow.png",
    "light": {
     "offset": [

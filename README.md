@@ -8,8 +8,10 @@ Godot 4 · GDScript · Android.
 
 ## Estado
 
-**Fase 1 (fundamentos y prototipo artístico): jugable en Godot, APK exportado,
-sin probar todavía en teléfonos.** Detalle honesto en
+**Fase 2 (construcción y personalización): jugable en Godot, APK 0.2.0
+exportado, sin probar todavía en teléfonos.** La isla se puede transformar:
+catálogo de 36 objetos con variantes, colocar, mover, girar, guardar, quitar,
+pintar el terreno y deshacer, todo guardado en el teléfono. Detalle honesto en
 [documentation/ESTADO.md](documentation/ESTADO.md).
 
 ## Abrir y jugar
@@ -37,6 +39,7 @@ Todo el arte es original y se genera con Python (Pillow, NumPy, SciPy):
 ```bash
 python3 tools/art/terrain.py assets/environment
 python3 tools/art/props.py assets
+python3 tools/art/props_garden.py assets
 python3 tools/art/character.py assets/characters
 python3 tools/art/audio.py assets/audio
 python3 tools/art/island.py data/world/island_start.json

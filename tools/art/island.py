@@ -91,13 +91,13 @@ def make():
     put("lamp_post", 13, 14)
     put("lamp_post", 22, 15)
     # jardín: arriates de flores frente a la casa (oeste)
-    for i, f in enumerate(["flower_red", "flower_yellow", "flower_lilac", "flower_white", "flower_red", "flower_blue"]):
-        put(f, 9 + (i % 3), 14 + (i // 3))
+    for i, v in enumerate([0, 1, 2, 3, 0, 4]):
+        put("flowers", 9 + (i % 3), 14 + (i // 3), variant=v)
     for x in range(8, 13):
         put("fence", x, 17)
-    put("fence_v", 8, 16)
-    put("fence_v", 8, 15)
-    put("fence_v", 8, 14)
+    put("fence", 8, 16, variant=1)
+    put("fence", 8, 15, variant=1)
+    put("fence", 8, 14, variant=1)
     put("bush_round", 12, 12)
     put("tree_blossom", 7, 10)
     # plaza
@@ -106,8 +106,8 @@ def make():
     put("bench", 29, 22)
     put("lamp_post", 24, 21)
     put("lamp_post", 32, 18)
-    put("flower_yellow", 31, 21)
-    put("flower_white", 24, 18)
+    put("flowers", 31, 21, variant=1)
+    put("flowers", 24, 18, variant=3)
     # mirador
     put("telescope", 42, 6)
     put("bench", 39, 7)
@@ -125,6 +125,15 @@ def make():
     put("lily_pad", 13, 28)
     put("bench", 10, 21)
     put("tree_oak", 18, 22)
+    put("picnic_blanket", 20, 29)
+    put("apple_crate", 22, 29)
+    put("garden_lantern", 13, 22)
+    put("flower_pot", 16, 13, variant=2)
+    put("flower_pot", 19, 13, variant=0)
+    put("birdhouse", 6, 12)
+    put("planter", 23, 11)
+    put("hydrangea", 12, 13)
+    put("sunflower", 7, 13)
     # playa
     put("driftwood", 42, 31)
     put("rock_small", 47, 30)
@@ -143,7 +152,7 @@ def make():
         put(t, x, y)
     bushes = [(16, 7), (20, 9), (34, 11), (30, 26), (24, 27), (42, 18), (6, 15), (14, 31), (38, 22), (35, 6)]
     for i, (x, y) in enumerate(bushes):
-        put("bush_round" if i % 2 == 0 else "bush_berry", x, y)
+        put("bush_round", x, y, variant=i % 2)
     tufts = [(r.randrange(4, 50), r.randrange(4, 36)) for _ in range(140)]
     occupied = set()
     for o in objects:
@@ -151,7 +160,7 @@ def make():
     n = 0
     for x, y in tufts:
         if g[y][x] == GRASS and (x, y) not in occupied:
-            put("grass_tuft" if n % 4 else "wildflowers", x, y)
+            put("grass_tuft", x, y, variant=0 if n % 4 else 1)
             occupied.add((x, y))
             n += 1
 

@@ -138,6 +138,56 @@ def click():
     return tone(1400, 0.05, 0.2, (1, 0.5), 60)
 
 
+def sweep(f0, f1, dur, vol, decay=8.0, harm=(1, 0.25)):
+    m = int(dur * SR)
+    tt = np.arange(m) / SR
+    f = np.linspace(f0, f1, m)
+    ph = 2 * np.pi * np.cumsum(f) / SR
+    x = sum(a * np.sin(ph * (i + 1)) for i, a in enumerate(harm))
+    return x * np.exp(-tt * decay) * env(m, 0.004, 0.02) * vol
+
+
+def build_pop():
+    """Colocar: «pop» redondo y blandito."""
+    a = sweep(320, 720, 0.12, 0.35, 18)
+    b = np.concatenate([np.zeros(int(0.05 * SR)), tone(1046, 0.25, 0.12, (1, 0.3), 14)])
+    n = max(len(a), len(b))
+    return np.pad(a, (0, n - len(a))) + np.pad(b, (0, n - len(b)))
+
+
+def build_pickup():
+    return sweep(700, 380, 0.14, 0.3, 16)
+
+
+def build_swish(seed=5):
+    rng = np.random.default_rng(seed)
+    m = int(0.16 * SR)
+    x = lowpass(rng.standard_normal(m), 0.12) * env(m, 0.03, 0.1)
+    return x / np.max(np.abs(x)) * 0.25
+
+
+def build_undo():
+    return np.concatenate([tone(784, 0.07, 0.16, (1, 0.2), 30), tone(587, 0.12, 0.16, (1, 0.2), 22)])
+
+
+def build_boop():
+    """No cabe: suave y bajito, nunca un error estridente."""
+    return sweep(300, 240, 0.16, 0.25, 14, (1, 0.15))
+
+
+def build_sparkle():
+    out = np.zeros(int(1.6 * SR))
+    for i, f in enumerate([1318.5, 1568.0, 2093.0, 2637.0]):
+        x = tone(f, 1.2, 0.12, (1, 0.25), 4.0)
+        s0 = int(i * 0.09 * SR)
+        out[s0:s0 + len(x)] += x[: len(out) - s0]
+    return out
+
+
+def build_drawer():
+    return sweep(500, 900, 0.1, 0.12, 22)
+
+
 def music_box(seconds_per_beat=0.5):
     """Melodía original de caja de música (do mayor, I-vi-IV-V), en bucle."""
     notes = {"C4": 261.6, "D4": 293.7, "E4": 329.6, "F4": 349.2, "G4": 392.0, "A4": 440.0, "B4": 493.9,
@@ -184,6 +234,13 @@ def build(out):
     write(f"{out}/chime.wav", chime())
     write(f"{out}/click.wav", click())
     write(f"{out}/music_island.wav", music_box())
+    write(f"{out}/build_pop.wav", build_pop())
+    write(f"{out}/build_pickup.wav", build_pickup())
+    write(f"{out}/build_swish.wav", build_swish())
+    write(f"{out}/build_undo.wav", build_undo())
+    write(f"{out}/build_boop.wav", build_boop())
+    write(f"{out}/build_sparkle.wav", build_sparkle())
+    write(f"{out}/build_drawer.wav", build_drawer())
     print("audio ok")
 
 

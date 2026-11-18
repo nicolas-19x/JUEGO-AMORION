@@ -1,0 +1,205 @@
+{
+ "items": [
+  {
+   "id": "flowers",
+   "name": "Flores",
+   "tab": "flores",
+   "category": "flores",
+   "sprite": "res://assets/vegetation/flower_red.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 14
+   },
+   "variants": [
+    {
+     "name": "Rojas",
+     "sprite": "res://assets/vegetation/flower_red.png"
+    },
+    {
+     "name": "Amarillas",
+     "sprite": "res://assets/vegetation/flower_yellow.png"
+    },
+    {
+     "name": "Lilas",
+     "sprite": "res://assets/vegetation/flower_lilac.png"
+    },
+    {
+     "name": "Blancas",
+     "sprite": "res://assets/vegetation/flower_white.png"
+    },
+    {
+     "name": "Azules",
+     "sprite": "res://assets/vegetation/flower_blue.png"
+    }
+   ]
+  },
+  {
+   "id": "hydrangea",
+   "name": "Hortensia",
+   "tab": "flores",
+   "category": "flores",
+   "sprite": "res://assets/vegetation/hydrangea_blue.png",
+   "anchor": [
+    10,
+    15
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -6,
+    16,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.3,
+    "height_px": 14
+   },
+   "variants": [
+    {
+     "name": "Azul",
+     "sprite": "res://assets/vegetation/hydrangea_blue.png"
+    },
+    {
+     "name": "Lila",
+     "sprite": "res://assets/vegetation/hydrangea_lilac.png"
+    }
+   ]
+  },
+  {
+   "id": "sunflower",
+   "name": "Girasol",
+   "tab": "flores",
+   "category": "flores",
+   "sprite": "res://assets/vegetation/sunflower.png",
+   "anchor": [
+    7,
+    28
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -2,
+    -2,
+    4,
+    2
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.9,
+    "height_px": 28
+   },
+   "description": "Siempre mira hacia donde más luz hay."
+  },
+  {
+   "id": "flower_pot",
+   "name": "Maceta",
+   "tab": "flores",
+   "category": "flores",
+   "sprite": "res://assets/furniture/flower_pot_red.png",
+   "anchor": [
+    7,
+    16
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -5,
+    -3,
+    10,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "sand",
+    "wood"
+   ],
+   "variants": [
+    {
+     "name": "Rojas",
+     "sprite": "res://assets/furniture/flower_pot_red.png"
+    },
+    {
+     "name": "Amarillas",
+     "sprite": "res://assets/furniture/flower_pot_yellow.png"
+    },
+    {
+     "name": "Lilas",
+     "sprite": "res://assets/furniture/flower_pot_lilac.png"
+    },
+    {
+     "name": "Blancas",
+     "sprite": "res://assets/furniture/flower_pot_white.png"
+    },
+    {
+     "name": "Azules",
+     "sprite": "res://assets/furniture/flower_pot_blue.png"
+    }
+   ]
+  },
+  {
+   "id": "planter",
+   "name": "Jardinera",
+   "tab": "flores",
+   "category": "flores",
+   "sprite": "res://assets/furniture/planter.png",
+   "anchor": [
+    17,
+    18
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -16,
+    -6,
+    32,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "wood"
+   ],
+   "variants": [
+    {
+     "name": "Lavanda",
+     "sprite": "res://assets/furniture/planter.png"
+    },
+    {
+     "name": "Rosas",
+     "sprite": "res://assets/furniture/planter_rose.png"
+    }
+   ]
+  }
+ ]
+}

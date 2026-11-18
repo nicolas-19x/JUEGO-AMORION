@@ -45,9 +45,46 @@ func _process(_delta: float) -> bool:
 				world.player.facing = "up"
 				world._update_target()
 				world.interact()
+			"build":
+				var hud = _main.get_node("Hud")
+				hud.enter_build()
+				var bm = hud.build_mode
+				var what: String = _args[7] if _args.size() > 7 else ""
+				if what == "select":
+					var best = null
+					for o in world.objects.values():
+						if o.item["id"] == (_args[8] if _args.size() > 8 else "bench"):
+							if best == null or o.global_position.distance_to(world.player.global_position) < best.global_position.distance_to(world.player.global_position):
+								best = o
+					if best:
+						bm._select(best)
+				elif what == "demo":
+					# una pequeña sesión de construcción para la captura
+					var p0: Vector2i = world.terrain.world_to_cell(world.player.global_position)
+					world.build_place("picnic_blanket", 0, p0 + Vector2i(2, -3))
+					world.build_place("apple_crate", 0, p0 + Vector2i(4, -3))
+					world.build_place("garden_lantern", 0, p0 + Vector2i(1, -3))
+					world.build_place("flower_pot", 2, p0 + Vector2i(5, -2))
+					world.build_place("hydrangea", 0, p0 + Vector2i(-2, -4))
+					world.build_place("sunflower", 0, p0 + Vector2i(-3, -4))
+					world.build_place("planter", 1, p0 + Vector2i(-1, -6))
+					bm.drawer.show_tab("flores")
+					bm.drawer.select_key("item:flowers")
+					bm.start_placing("flowers", 2)
+					bm._move_ghost_to(p0 + Vector2i(1, -6))
+				elif what == "paint":
+					bm.drawer.show_tab("terreno")
+					bm.start_painting(3)
+				elif what != "":
+					var tab: String = root.get_node("Catalog").get_item(what).get("tab", "naturaleza")
+					bm.drawer.show_tab(tab)
+					bm.drawer.select_key("item:" + what)
+					bm.start_placing(what, 0)
+					if _args.size() > 8 and _args[8] == "bad":
+						bm._move_ghost_to(world.terrain.world_to_cell(world.player.global_position) + Vector2i(-1, -1))
 	if _frames == 5 and _args.size() > 6 and _args[6] == "interact":
 		_main.get("world").player.facing = "up"
-	if _frames == (160 if _args.size() > 6 and _args[6] == "interact" else 50):
+	if _frames == (160 if _args.size() > 6 and _args[6] == "interact" else 70):
 		var img := root.get_texture().get_image()
 		img.save_png(_out)
 		print("captura guardada: ", _out, " ", img.get_size())

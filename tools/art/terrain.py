@@ -100,16 +100,17 @@ def fill_grass(seed=11):
     c = Canvas(PERIOD, PERIOD)
     for y in range(PERIOD):
         for x in range(PERIOD):
-            v = n1[y, x] * 0.75 + n2[y, x] * 0.25
-            lvl = dither_pick(min(1, max(0, (v - 0.25) * 1.6)), x, y, 3)
-            c.put(x, y, g[2 + lvl] if lvl < 2 else g[3])
+            v = n1[y, x] * 0.8 + n2[y, x] * 0.2
+            # dos tonos con transición suave: superficie tranquila, sin ruido
+            lvl = dither_pick(min(1, max(0, (v - 0.32) * 1.9)), x, y, 2)
+            c.put(x, y, g[2 + lvl] if lvl == 0 else g[3])
     # briznas: trazos de 2px con luz arriba y sombra abajo
-    for _ in range(46):
+    for _ in range(26):
         x, y = r.randrange(PERIOD), r.randrange(PERIOD)
         c.put(x, y, g[4])
         c.put(x, (y + 1) % PERIOD, g[3])
-        c.put(x, (y + 2) % PERIOD, g[1] if r.random() < 0.35 else g[2])
-    for _ in range(10):
+        c.put(x, (y + 2) % PERIOD, g[2])
+    for _ in range(6):
         x, y = r.randrange(PERIOD), r.randrange(PERIOD)
         c.put(x, y, g[5])
     return c
@@ -144,17 +145,17 @@ def fill_dirt(seed=31):
     c = Canvas(PERIOD, PERIOD)
     for y in range(PERIOD):
         for x in range(PERIOD):
-            lvl = dither_pick(min(1, max(0, (n1[y, x] - 0.25) * 1.6)), x, y, 3)
-            c.put(x, y, d[2 + lvl])
+            lvl = dither_pick(min(1, max(0, (n1[y, x] - 0.3) * 1.7)), x, y, 2)
+            c.put(x, y, d[3 + lvl] if lvl else d[3])
     for _ in range(9):  # guijarros
         x, y = r.randrange(PERIOD), r.randrange(PERIOD)
         c.put(x, y, d[5])
         c.put((x + 1) % PERIOD, y, d[4])
         c.put(x, (y + 1) % PERIOD, d[1])
         c.put((x + 1) % PERIOD, (y + 1) % PERIOD, d[1])
-    for _ in range(18):
+    for _ in range(10):
         x, y = r.randrange(PERIOD), r.randrange(PERIOD)
-        c.put(x, y, d[1] if r.random() < 0.5 else d[4])
+        c.put(x, y, d[2] if r.random() < 0.5 else d[4])
     return c
 
 

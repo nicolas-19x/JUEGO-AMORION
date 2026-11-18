@@ -22,6 +22,12 @@ var cine_label: Label
 var cine_hint: Label
 var title_card: Control
 var settings: SettingsPanel
+var build_btn: TouchButton
+var build_mode: BuildMode
+var toast_panel: PanelContainer
+var toast_label: Label
+var milestone_panel: PanelContainer
+var milestone_label: Label
 
 var _caption_time := 0.0
 var _pinch: Dictionary = {}  # índice de dedo -> posición
@@ -38,6 +44,7 @@ func setup(w: World, s: PixelStage) -> void:
 	world.caption_requested.connect(show_caption)
 	world.cinematic_started.connect(_on_cinematic_started)
 	world.cinematic_finished.connect(_on_cinematic_finished)
+	world.milestone_reached.connect(show_milestone)
 
 
 func _ready() -> void:
@@ -84,6 +91,18 @@ func _ready() -> void:
 	menu.offset_top = 20
 	menu.pressed.connect(open_settings)
 	layout.add_child(menu)
+
+	# construir (arriba a la derecha, junto al menú)
+	build_btn = TouchButton.new()
+	build_btn.radius = 40.0
+	build_btn.pill_width = 200.0
+	build_btn.set_look("Construir", TouchButton.Icon.BUILD, UiTheme.SAGE, UiTheme.CREAM)
+	build_btn.anchor_left = 1.0
+	build_btn.anchor_right = 1.0
+	build_btn.offset_left = -336
+	build_btn.offset_top = 20
+	build_btn.pressed.connect(enter_build)
+	layout.add_child(build_btn)
 
 	# acción contextual (abajo a la derecha, al alcance del pulgar)
 	action = TouchButton.new()
@@ -150,6 +169,22 @@ func _ready() -> void:
 	cine_hint.modulate.a = 0.0
 	root.add_child(cine_hint)
 
+	# avisos breves y hitos (arriba, centrados, nunca bloquean)
+	toast_panel = _pill_panel(Color(UiTheme.CREAM, 0.95))
+	toast_panel.offset_top = 196
+	toast_label = toast_panel.get_child(0)
+	milestone_panel = _pill_panel(Color("#fff4d8"))
+	milestone_panel.offset_top = 116
+	milestone_label = milestone_panel.get_child(0)
+	milestone_label.add_theme_color_override("font_color", UiTheme.ACCENT_DEEP)
+	# estrellita pixel art a la izquierda del texto del hito
+	milestone_panel.remove_child(milestone_label)
+	var mrow := HBoxContainer.new()
+	mrow.add_theme_constant_override("separation", 12)
+	mrow.add_child(UiTheme.pixel_icon("res://assets/interface/star.png", 4))
+	mrow.add_child(milestone_label)
+	milestone_panel.add_child(mrow)
+
 	_build_title_card()
 	get_viewport().size_changed.connect(_apply_safe_area)
 	_apply_safe_area()
@@ -173,6 +208,8 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if build_mode and build_mode.visible:
+		return
 	if _cinematic:
 		if event is InputEventScreenTouch and event.pressed:
 			world.end_view()
@@ -196,7 +233,9 @@ func _input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	# botón «atrás» de Android: cierra lo que esté abierto o abre el menú
 	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
-		if settings:
+		if build_mode and build_mode.visible:
+			build_mode.back()
+		elif settings:
 			settings.close()
 		elif _cinematic:
 			world.end_view()
@@ -210,6 +249,77 @@ func _notification(what: int) -> void:
 
 
 # ------------------------------------------------------------------ acciones
+func enter_build() -> void:
+	if world.in_cinematic:
+		return
+	if build_mode == null:
+		build_mode = BuildMode.new()
+		build_mode.world = world
+		build_mode.stage = stage
+		build_mode.hud = self
+		build_mode.finished.connect(_exit_build)
+		root.add_child(build_mode)
+	hide_caption()
+	world.set_build_mode(true)
+	joystick.enabled = false
+	for c in [joystick, action, build_btn, menu, clock_chip]:
+		c.visible = false
+	build_mode.open()
+	AudioDirector.play("ui_open", -8.0)
+
+
+func _exit_build(changes: int) -> void:
+	world.set_build_mode(false)
+	joystick.enabled = true
+	for c in [joystick, action, build_btn, menu, clock_chip]:
+		c.visible = true
+	if changes > 0:
+		toast("Isla guardada · %d %s" % [changes, "cambio" if changes == 1 else "cambios"])
+
+
+func toast(text: String) -> void:
+	toast_label.text = text
+	toast_panel.visible = true
+	var tw := toast_panel.create_tween()
+	toast_panel.modulate.a = 0.0
+	tw.tween_property(toast_panel, "modulate:a", 1.0, 0.18)
+	tw.tween_interval(2.2)
+	tw.tween_property(toast_panel, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(func() -> void: toast_panel.visible = false)
+
+
+## Un hito de la historia de la isla: el momento cumbre de construir algo.
+func show_milestone(text: String) -> void:
+	milestone_label.text = text
+	milestone_panel.visible = true
+	milestone_panel.modulate.a = 0.0
+	milestone_panel.offset_top = 96
+	AudioDirector.play("build_sparkle", -8.0)
+	var tw := milestone_panel.create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.set_parallel()
+	tw.tween_property(milestone_panel, "modulate:a", 1.0, 0.35)
+	tw.tween_property(milestone_panel, "offset_top", 116.0, 0.5)
+	tw.chain().tween_interval(3.0)
+	tw.chain().tween_property(milestone_panel, "modulate:a", 0.0, 0.6)
+	tw.chain().tween_callback(func() -> void: milestone_panel.visible = false)
+
+
+func _pill_panel(bg: Color) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UiTheme.panel_box(bg, 26, 16))
+	p.anchor_left = 0.5
+	p.anchor_right = 0.5
+	p.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.visible = false
+	var l := Label.new()
+	l.add_theme_font_size_override("font_size", 22)
+	l.add_theme_color_override("font_color", UiTheme.INK)
+	p.add_child(l)
+	root.add_child(p)
+	return p
+
+
 func open_settings() -> void:
 	if settings:
 		return
@@ -264,7 +374,7 @@ func _on_cinematic_started(text: String) -> void:
 	var tw := create_tween().set_parallel().set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tw.tween_property(cine_top, "offset_bottom", 74.0, 0.8)
 	tw.tween_property(cine_bottom, "offset_top", -110.0, 0.8)
-	for c in [menu, joystick, clock_chip]:
+	for c in [menu, joystick, clock_chip, build_btn]:
 		tw.tween_property(c, "modulate:a", 0.0, 0.4)
 	tw.tween_property(cine_label, "modulate:a", 1.0, 1.6).set_delay(0.8)
 	tw.tween_property(cine_hint, "modulate:a", 1.0, 1.0).set_delay(2.4)
@@ -279,7 +389,7 @@ func _on_cinematic_finished() -> void:
 	tw.tween_property(cine_bottom, "offset_top", 0.0, 0.5)
 	tw.tween_property(cine_label, "modulate:a", 0.0, 0.3)
 	tw.tween_property(cine_hint, "modulate:a", 0.0, 0.3)
-	for c in [menu, joystick, clock_chip]:
+	for c in [menu, joystick, clock_chip, build_btn]:
 		tw.tween_property(c, "modulate:a", 1.0, 0.4)
 
 

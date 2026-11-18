@@ -7,6 +7,9 @@ var target: Node2D
 var cinematic := false
 var follow_offset := Vector2(0, -14)
 var _cine_goal := Vector2.ZERO
+## Modo construcción: la cámara se mueve con el dedo en lugar de seguir al personaje.
+var free_mode := false
+var free_goal := Vector2.ZERO
 
 
 func _ready() -> void:
@@ -28,7 +31,9 @@ func snap_to_target() -> void:
 
 func _process(delta: float) -> void:
 	var goal := _cine_goal if cinematic else (target.global_position + follow_offset if target else global_position)
-	var speed := 1.6 if cinematic else 7.0
+	if free_mode and not cinematic:
+		goal = free_goal
+	var speed := 1.6 if cinematic else (14.0 if free_mode else 7.0)
 	global_position = global_position.lerp(goal, 1.0 - exp(-delta * speed))
 
 
@@ -39,3 +44,11 @@ func start_cinematic(goal: Vector2) -> void:
 
 func end_cinematic() -> void:
 	cinematic = false
+
+
+## Desplaza la vista libre (modo construcción), sin salir de la isla.
+func pan(world_delta: Vector2, view_size: Vector2) -> void:
+	var half := view_size / 2.0
+	free_goal += world_delta
+	free_goal.x = clampf(free_goal.x, limit_left + half.x, maxf(limit_left + half.x, limit_right - half.x))
+	free_goal.y = clampf(free_goal.y, limit_top + half.y, maxf(limit_top + half.y, limit_bottom - half.y))

@@ -577,20 +577,31 @@ def house_cottage():
     c.hline(12, W - 13, roof_top - 3, rf[4])
     # buhardilla con ventana redonda
     bx = W // 2
-    for y in range(roof_top + 10, roof_top + 30):
+    for y in range(roof_top + 10, roof_top + 31):
         half = min(12, (y - roof_top - 8) * 1.2)
         for x in range(int(bx - half), int(bx + half)):
-            c.put(x, y, pl[4] if y > roof_top + 16 else rf[3])
+            c.put(x, y, (pl[4] if x > bx - half + 1 else pl[3]) if y > roof_top + 16 else rf[3])
     for y in range(roof_top + 6, roof_top + 18):
         half = (y - roof_top - 5) * 1.25
         for x in range(int(bx - half), int(bx + half)):
             c.put(x, y, rf[4] if x < bx else rf[3])
-    for y in range(roof_top + 18, roof_top + 28):
-        for x in range(bx - 5, bx + 5):
-            if (x + 0.5 - bx) ** 2 + (y + 0.5 - (roof_top + 23)) ** 2 <= 20:
+    # ventana redonda con marco de madera y cruz
+    wy = roof_top + 23
+    for y in range(wy - 6, wy + 6):
+        for x in range(bx - 6, bx + 6):
+            d2 = (x + 0.5 - bx) ** 2 + (y + 0.5 - wy) ** 2
+            if d2 <= 30:
+                c.put(x, y, wd[2])
+            if d2 <= 18:
                 c.put(x, y, (54, 70, 104, 255))
-    c.put(bx - 2, roof_top + 21, (120, 150, 190, 255))
-    c.put(bx - 1, roof_top + 20, (120, 150, 190, 255))
+    c.vline(bx, wy - 4, wy + 3, wd[3])
+    c.hline(bx - 4, bx + 3, wy, wd[3])
+    c.put(bx - 2, wy - 2, (120, 150, 190, 255))
+    c.put(bx - 3, wy - 1, (120, 150, 190, 255))
+    # jardinera bajo la ventana
+    c.rect(bx - 7, roof_top + 30, 14, 2, wd[3])
+    for k in range(-6, 7, 2):
+        c.put(bx + k, roof_top + 29, ramp("flower_red")[2] if k % 4 else ramp("leaf")[3])
     # chimenea
     cx = W - 30
     c.rect(cx, 0, 10, 22, st[3])
@@ -619,9 +630,9 @@ def house_window_glow():
     win(8 + 7, wall_top + 24, 14, 12)
     win(W - 9 - 21, wall_top + 24, 14, 12)
     win(W // 2 - 5, wall_top + 20, 10, 6)
-    for y in range(10 + 18, 10 + 28):
+    for y in range(10 + 17, 10 + 30):
         for x in range(W // 2 - 5, W // 2 + 5):
-            if (x + 0.5 - W // 2) ** 2 + (y + 0.5 - 33) ** 2 <= 20:
+            if (x + 0.5 - W // 2) ** 2 + (y + 0.5 - 33) ** 2 <= 18 and x != W // 2 and y != 33:
                 c.put(x, y, l[2])
     c.rect(W // 2 + 12, wall_top + 16, 3, 4, l[3])
     return c

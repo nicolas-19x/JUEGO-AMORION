@@ -89,46 +89,52 @@
    ]
   },
   {
-   "item": "flower_red",
+   "item": "flowers",
    "cell": [
     9,
     14
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "flower_yellow",
+   "item": "flowers",
    "cell": [
     10,
     14
-   ]
+   ],
+   "variant": 1
   },
   {
-   "item": "flower_lilac",
+   "item": "flowers",
    "cell": [
     11,
     14
-   ]
+   ],
+   "variant": 2
   },
   {
-   "item": "flower_white",
+   "item": "flowers",
    "cell": [
     9,
     15
-   ]
+   ],
+   "variant": 3
   },
   {
-   "item": "flower_red",
+   "item": "flowers",
    "cell": [
     10,
     15
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "flower_blue",
+   "item": "flowers",
    "cell": [
     11,
     15
-   ]
+   ],
+   "variant": 4
   },
   {
    "item": "fence",
@@ -166,25 +172,28 @@
    ]
   },
   {
-   "item": "fence_v",
+   "item": "fence",
    "cell": [
     8,
     16
-   ]
+   ],
+   "variant": 1
   },
   {
-   "item": "fence_v",
+   "item": "fence",
    "cell": [
     8,
     15
-   ]
+   ],
+   "variant": 1
   },
   {
-   "item": "fence_v",
+   "item": "fence",
    "cell": [
     8,
     14
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "bush_round",
@@ -236,18 +245,20 @@
    ]
   },
   {
-   "item": "flower_yellow",
+   "item": "flowers",
    "cell": [
     31,
     21
-   ]
+   ],
+   "variant": 1
   },
   {
-   "item": "flower_white",
+   "item": "flowers",
    "cell": [
     24,
     18
-   ]
+   ],
+   "variant": 3
   },
   {
    "item": "telescope",
@@ -352,6 +363,71 @@
    "cell": [
     18,
     22
+   ]
+  },
+  {
+   "item": "picnic_blanket",
+   "cell": [
+    20,
+    29
+   ]
+  },
+  {
+   "item": "apple_crate",
+   "cell": [
+    22,
+    29
+   ]
+  },
+  {
+   "item": "garden_lantern",
+   "cell": [
+    13,
+    22
+   ]
+  },
+  {
+   "item": "flower_pot",
+   "cell": [
+    16,
+    13
+   ],
+   "variant": 2
+  },
+  {
+   "item": "flower_pot",
+   "cell": [
+    19,
+    13
+   ],
+   "variant": 0
+  },
+  {
+   "item": "birdhouse",
+   "cell": [
+    6,
+    12
+   ]
+  },
+  {
+   "item": "planter",
+   "cell": [
+    23,
+    11
+   ]
+  },
+  {
+   "item": "hydrangea",
+   "cell": [
+    12,
+    13
+   ]
+  },
+  {
+   "item": "sunflower",
+   "cell": [
+    7,
+    13
    ]
   },
   {
@@ -520,518 +596,592 @@
    "cell": [
     16,
     7
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "bush_berry",
+   "item": "bush_round",
    "cell": [
     20,
     9
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "bush_round",
    "cell": [
     34,
     11
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "bush_berry",
+   "item": "bush_round",
    "cell": [
     30,
     26
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "bush_round",
    "cell": [
     24,
     27
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "bush_berry",
+   "item": "bush_round",
    "cell": [
     42,
     18
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "bush_round",
    "cell": [
     6,
     15
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "bush_berry",
+   "item": "bush_round",
    "cell": [
     14,
     31
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "bush_round",
    "cell": [
     38,
     22
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "bush_berry",
+   "item": "bush_round",
    "cell": [
     35,
     6
-   ]
+   ],
+   "variant": 1
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     24,
     13
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     29,
     7
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     27,
     7
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     36,
     17
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     31,
     30
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     8,
     19
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     9,
     31
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     18,
     7
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     7,
     18
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     22,
     30
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     13,
     11
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     40,
     23
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     39,
     15
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     10,
     16
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     27,
     10
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     43,
     17
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     25,
     32
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     22,
     8
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     11,
     30
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     46,
     8
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     39,
     24
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     7,
     23
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     22,
     28
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     26,
     14
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     43,
     11
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     35,
     7
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     17,
     22
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     12,
     19
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     29,
     29
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     35,
     9
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     14,
     32
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     12,
     31
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     39,
     21
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     26,
     28
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     18,
     13
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     13,
     18
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     46,
     18
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     41,
     15
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     20,
     22
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     30,
     27
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     43,
     24
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     33,
     29
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     29,
     10
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     32,
     14
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     40,
     13
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     13,
     20
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     26,
     27
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     34,
     23
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     37,
     23
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     45,
     9
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     18,
     25
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     44,
     18
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     43,
     16
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     19,
     29
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     34,
     20
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     32,
     26
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     27,
     9
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     18,
     10
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     46,
     11
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     28,
     16
-   ]
+   ],
+   "variant": 0
   },
   {
-   "item": "wildflowers",
+   "item": "grass_tuft",
    "cell": [
     31,
     25
-   ]
+   ],
+   "variant": 1
   },
   {
    "item": "grass_tuft",
    "cell": [
     9,
     29
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     14,
     12
-   ]
+   ],
+   "variant": 0
   },
   {
    "item": "grass_tuft",
    "cell": [
     13,
     12
-   ]
+   ],
+   "variant": 0
   }
  ]
 }

@@ -75,6 +75,32 @@ static func chimney_smoke(at: Vector2) -> CPUParticles2D:
 	return p
 
 
+## Nubecita de polvo al colocar, mover o quitar un objeto.
+static func dust(at: Vector2) -> CPUParticles2D:
+	var p := CPUParticles2D.new()
+	p.texture = load("res://assets/fx/soft_particle.png")
+	p.amount = 10
+	p.lifetime = 0.55
+	p.one_shot = true
+	p.explosiveness = 0.95
+	p.position = at + Vector2(0, -2)
+	p.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	p.emission_rect_extents = Vector2(8, 2)
+	p.direction = Vector2(0, -1)
+	p.spread = 80.0
+	p.initial_velocity_min = 14.0
+	p.initial_velocity_max = 26.0
+	p.gravity = Vector2(0, 30)
+	p.damping_min = 20.0
+	p.damping_max = 30.0
+	p.z_index = 9
+	p.color = Color(1.0, 0.97, 0.88)
+	p.color_ramp = _grad([0.0, 0.5, 1.0], [0.9, 0.6, 0.0])
+	p.emitting = true
+	p.finished.connect(p.queue_free)
+	return p
+
+
 func _fireflies_at(at: Vector2) -> CPUParticles2D:
 	var p := CPUParticles2D.new()
 	p.texture = load("res://assets/fx/soft_particle.png")

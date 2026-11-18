@@ -1,0 +1,282 @@
+{
+ "items": [
+  {
+   "id": "tree_oak",
+   "name": "Roble",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/tree_oak.png",
+   "anchor": [
+    20,
+    48
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -6,
+    -6,
+    12,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.5,
+    "height_px": 40
+   },
+   "variants": [
+    {
+     "name": "Verde",
+     "sprite": "res://assets/vegetation/tree_oak.png"
+    },
+    {
+     "name": "Azulado",
+     "sprite": "res://assets/vegetation/tree_oak_b.png"
+    }
+   ],
+   "description": "Un roble joven. Da una sombra muy agradable a mediodía."
+  },
+  {
+   "id": "tree_blossom",
+   "name": "Cerezo en flor",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/tree_blossom.png",
+   "anchor": [
+    20,
+    48
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -5,
+    -6,
+    10,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.5,
+    "height_px": 40
+   },
+   "emitter": "petals",
+   "description": "Suelta pétalos con la brisa. Nadie sabe cuándo dejará de florecer."
+  },
+  {
+   "id": "tree_pine",
+   "name": "Pino",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/tree_pine.png",
+   "anchor": [
+    16,
+    52
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -4,
+    -5,
+    8,
+    5
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "sway": {
+    "strength": 0.4,
+    "height_px": 44
+   }
+  },
+  {
+   "id": "tree_palm",
+   "name": "Palmera",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/tree_palm.png",
+   "anchor": [
+    21,
+    51
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -3,
+    -4,
+    7,
+    4
+   ],
+   "surfaces": [
+    "sand",
+    "grass"
+   ],
+   "sway": {
+    "strength": 0.8,
+    "height_px": 40
+   }
+  },
+  {
+   "id": "sapling",
+   "name": "Arbolito",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/sapling.png",
+   "anchor": [
+    8,
+    20
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -3,
+    -3,
+    6,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "sway": {
+    "strength": 0.6,
+    "height_px": 18
+   },
+   "description": "Pequeño todavía. Ya crecerá."
+  },
+  {
+   "id": "bush_round",
+   "name": "Arbusto",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/bush_round.png",
+   "anchor": [
+    10,
+    15
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -6,
+    16,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "sway": {
+    "strength": 0.3,
+    "height_px": 14
+   },
+   "variants": [
+    {
+     "name": "Verde",
+     "sprite": "res://assets/vegetation/bush_round.png"
+    },
+    {
+     "name": "Con bayas",
+     "sprite": "res://assets/vegetation/bush_berry.png"
+    }
+   ]
+  },
+  {
+   "id": "hedge",
+   "name": "Seto",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/hedge.png",
+   "anchor": [
+    9,
+    15
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -6,
+    16,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ]
+  },
+  {
+   "id": "mushrooms",
+   "name": "Setas",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/mushrooms.png",
+   "anchor": [
+    7,
+    10
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "flat": true
+  },
+  {
+   "id": "grass_tuft",
+   "name": "Mata de hierba",
+   "tab": "naturaleza",
+   "category": "naturaleza",
+   "sprite": "res://assets/vegetation/grass_tuft.png",
+   "anchor": [
+    6,
+    9
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass"
+   ],
+   "sway": {
+    "strength": 1.0,
+    "height_px": 10
+   },
+   "minor": true,
+   "variants": [
+    {
+     "name": "Hierba",
+     "sprite": "res://assets/vegetation/grass_tuft.png"
+    },
+    {
+     "name": "Con flores",
+     "sprite": "res://assets/vegetation/wildflowers.png"
+    }
+   ]
+  }
+ ]
+}

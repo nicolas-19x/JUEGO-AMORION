@@ -1,0 +1,328 @@
+{
+ "items": [
+  {
+   "id": "fence",
+   "name": "Valla de madera",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/fence.png",
+   "anchor": [
+    8,
+    18
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -8,
+    -4,
+    16,
+    4
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "rotates": true,
+   "variants": [
+    {
+     "name": "Horizontal",
+     "sprite": "res://assets/furniture/fence.png"
+    },
+    {
+     "name": "Lateral",
+     "sprite": "res://assets/furniture/fence_v.png",
+     "anchor": [
+      8,
+      21
+     ],
+     "collision": [
+      -3,
+      -4,
+      6,
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "id": "stepping_stone",
+   "name": "Losa",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/stepping_stone.png",
+   "anchor": [
+    8,
+    10
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand"
+   ],
+   "flat": true
+  },
+  {
+   "id": "rock_big",
+   "name": "Roca grande",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/environment/rock_big.png",
+   "anchor": [
+    13,
+    15
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -11,
+    -8,
+    22,
+    8
+   ],
+   "surfaces": [
+    "grass",
+    "sand",
+    "dirt"
+   ]
+  },
+  {
+   "id": "rock_small",
+   "name": "Piedra",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/environment/rock_small.png",
+   "anchor": [
+    7,
+    8
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -5,
+    -4,
+    10,
+    4
+   ],
+   "surfaces": [
+    "grass",
+    "sand",
+    "dirt"
+   ]
+  },
+  {
+   "id": "birdhouse",
+   "name": "Casita de pájaros",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/birdhouse.png",
+   "anchor": [
+    8,
+    30
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -2,
+    -3,
+    4,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Mirar",
+    "text": "Todavía no vive nadie. Quizá esta primavera."
+   }
+  },
+  {
+   "id": "well",
+   "name": "Pozo",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/well.png",
+   "anchor": [
+    17,
+    38
+   ],
+   "footprint": [
+    2,
+    2
+   ],
+   "collision": [
+    -14,
+    -14,
+    28,
+    14
+   ],
+   "surfaces": [
+    "grass",
+    "dirt"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Asomarse",
+    "text": "El agua del fondo devuelve un trocito de cielo."
+   }
+  },
+  {
+   "id": "signpost",
+   "name": "Cartel",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/signpost.png",
+   "anchor": [
+    11,
+    26
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -2,
+    -3,
+    4,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand",
+    "cobble"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Leer",
+    "text": "Un cartel en blanco, esperando un nombre para este lugar."
+   }
+  },
+  {
+   "id": "apple_crate",
+   "name": "Caja de manzanas",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/apple_crate.png",
+   "anchor": [
+    8,
+    14
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -7,
+    -6,
+    14,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "wood",
+    "sand"
+   ]
+  },
+  {
+   "id": "watering_can",
+   "name": "Regadera",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/watering_can.png",
+   "anchor": [
+    7,
+    8
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "wood"
+   ],
+   "flat": true
+  },
+  {
+   "id": "fountain",
+   "name": "Fuente",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/fountain.png",
+   "anchor": [
+    24,
+    35
+   ],
+   "footprint": [
+    3,
+    2
+   ],
+   "collision": [
+    -22,
+    -16,
+    44,
+    16
+   ],
+   "surfaces": [
+    "cobble",
+    "grass",
+    "dirt"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Mirar",
+    "text": "El agua cae sin prisa. En el fondo brilla una moneda que nadie recuerda haber lanzado."
+   }
+  },
+  {
+   "id": "mailbox",
+   "name": "Buzón",
+   "tab": "jardin",
+   "category": "jardin",
+   "sprite": "res://assets/furniture/mailbox.png",
+   "anchor": [
+    7,
+    26
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -2,
+    -3,
+    4,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Abrir",
+    "text": "El buzón está vacío y la banderita, bajada. Algún día llegarán cartas aquí."
+   }
+  }
+ ]
+}

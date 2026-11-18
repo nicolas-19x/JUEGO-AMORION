@@ -19,11 +19,14 @@ scripts/
   player/     player.gd
   characters/ character_appearance.gd (capas + intercambio de paleta)
   camera/     world_camera.gd
-  interface/  hud.gd, virtual_joystick.gd, touch_button.gd, settings_panel.gd, ui_theme.gd
+  interface/  hud.gd, virtual_joystick.gd, touch_button.gd, settings_panel.gd, ui_theme.gd,
+              build_mode.gd (estados y gestos del modo construcción), build_drawer.gd (catálogo)
   storage/    local_store.gd (JSON atómico + .bak)
+  construction/ build_history.gd (deshacer/rehacer), build_overlay.gd (cuadrícula y huellas)
 shaders/      water, sway (vegetación), palette_swap (personajes), clouds
 data/
-  items/*.json         catálogo de objetos (un archivo por familia)
+  items/*.json         catálogo de objetos (un archivo por pestaña)
+  catalog/tabs.json    pestañas del catálogo y textos de los hitos
   world/materials.json materiales de terreno
   world/island_start.json  isla inicial (terreno + objetos)
   characters/appearance.json  capas, opciones y personajes predefinidos
@@ -83,6 +86,42 @@ una entrada JSON y su PNG; no hay que tocar código.
 
 `PlacedObject.to_data()` ya produce el registro serializable (uid, objeto,
 celda, metadatos, estado de la luz) que usará el guardado del mundo.
+
+## Construcción (Fase 2)
+
+**Estado del mundo.** `World` carga `user://world.json` si existe (versión 2) o,
+si no, la isla inicial. Guarda terreno, objetos (`uid`, objeto, celda, variante,
+metadatos, luz), inventario e hitos.
+
+**Ocupación.** Cada objeto ocupa las celdas de su huella en `occupancy`; las
+matas de hierba (`"minor": true`) van aparte en `minors` y se apartan solas.
+
+**Validación.** `World.can_place(objeto, variante, celda, ignorar_uid)` devuelve
+`{ok, reason, minors}`: límites, superficies permitidas, ocupación y personaje.
+
+**Operaciones.** Toda edición es un diccionario aplicado por
+`World.apply_op()` y revertido por `World.revert_op()`:
+
+| `t` | Datos | Revertir |
+|---|---|---|
+| `place` | `obj`, `minors`, `from_inventory` | quitar el objeto, devolver hierba e inventario |
+| `remove` | `obj`, `to_inventory` | volver a colocarlo |
+| `move` | `uid`, `from`, `to`, `minors` | volver a `from` |
+| `variant` | `uid`, `from`, `to` | variante anterior |
+| `paint` | `cells: [[x, y, antes, después]]`, `minors` | materiales anteriores |
+
+`BuildHistory` apila estas operaciones (150 pasos). En la Fase 4 la misma
+cola de operaciones se enviará al servidor.
+
+**Interfaz.** `BuildMode` es una máquina de estados (explorar, colocar,
+seleccionado, pintar). Un dedo: tocar o arrastrar (mover vista, mover objeto o
+pintar según el estado). Dos dedos: mover la vista y zoom. `BuildOverlay`
+dibuja la cuadrícula y las huellas como marcas en el suelo, bajo los objetos.
+
+**Objetos nuevos en el catálogo:** campos opcionales `tab`, `variants`
+(lista con `name`, `sprite` y lo que cambie: `anchor`, `collision`,
+`footprint`), `rotates` (la variante es una orientación), `flat` (bajo los
+personajes), `minor`, `unique`, `in_catalog`.
 
 ## Interfaz
 

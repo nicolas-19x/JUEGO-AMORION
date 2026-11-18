@@ -1,0 +1,42 @@
+{
+ "tabs": [
+  {
+   "id": "naturaleza",
+   "name": "Naturaleza",
+   "icon_item": "tree_oak"
+  },
+  {
+   "id": "flores",
+   "name": "Flores",
+   "icon_item": "flowers"
+  },
+  {
+   "id": "jardin",
+   "name": "Jardín",
+   "icon_item": "fence"
+  },
+  {
+   "id": "muebles",
+   "name": "Muebles",
+   "icon_item": "bench"
+  },
+  {
+   "id": "luces",
+   "name": "Luces",
+   "icon_item": "lamp_post"
+  },
+  {
+   "id": "agua",
+   "name": "Agua y playa",
+   "icon_item": "shell"
+  }
+ ],
+ "milestones": {
+  "first_object": "Vuestro primer objeto en la isla",
+  "first_tree": "El primer árbol plantado por vosotros",
+  "first_flower": "Las primeras flores",
+  "first_light": "Una luz nueva para las noches",
+  "first_paint": "Un camino que antes no existía",
+  "first_seat": "Un sitio nuevo para sentarse"
+ }
+}

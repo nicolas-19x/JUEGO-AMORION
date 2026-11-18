@@ -1,0 +1,172 @@
+{
+ "items": [
+  {
+   "id": "bench",
+   "name": "Banco",
+   "tab": "muebles",
+   "category": "muebles",
+   "sprite": "res://assets/furniture/bench.png",
+   "anchor": [
+    16,
+    19
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "collision": [
+    -15,
+    -6,
+    30,
+    6
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "sand",
+    "wood"
+   ],
+   "interaction": {
+    "type": "sit",
+    "label": "Sentarse",
+    "seat": [
+     0,
+     -3
+    ]
+   }
+  },
+  {
+   "id": "chair",
+   "name": "Silla",
+   "tab": "muebles",
+   "category": "muebles",
+   "sprite": "res://assets/furniture/chair.png",
+   "anchor": [
+    7,
+    20
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -5,
+    -4,
+    10,
+    4
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "wood",
+    "sand"
+   ],
+   "interaction": {
+    "type": "sit",
+    "label": "Sentarse",
+    "seat": [
+     0,
+     -2
+    ]
+   }
+  },
+  {
+   "id": "picnic_table",
+   "name": "Mesa de picnic",
+   "tab": "muebles",
+   "category": "muebles",
+   "sprite": "res://assets/furniture/picnic_table.png",
+   "anchor": [
+    22,
+    25
+   ],
+   "footprint": [
+    3,
+    2
+   ],
+   "collision": [
+    -20,
+    -18,
+    40,
+    18
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "sand",
+    "cobble"
+   ],
+   "interaction": {
+    "type": "inspect",
+    "label": "Mirar",
+    "text": "Cabe justo una merienda para dos. Y algo de postre."
+   }
+  },
+  {
+   "id": "picnic_blanket",
+   "name": "Manta de picnic",
+   "tab": "muebles",
+   "category": "muebles",
+   "sprite": "res://assets/furniture/picnic_blanket.png",
+   "anchor": [
+    18,
+    20
+   ],
+   "footprint": [
+    2,
+    1
+   ],
+   "surfaces": [
+    "grass",
+    "sand"
+   ],
+   "flat": true,
+   "interaction": {
+    "type": "sit",
+    "label": "Sentarse",
+    "seat": [
+     0,
+     -6
+    ]
+   }
+  },
+  {
+   "id": "telescope",
+   "name": "Catalejo",
+   "tab": "muebles",
+   "category": "muebles",
+   "sprite": "res://assets/furniture/telescope.png",
+   "anchor": [
+    9,
+    26
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -4,
+    -4,
+    8,
+    4
+   ],
+   "surfaces": [
+    "cobble",
+    "grass",
+    "dirt",
+    "wood"
+   ],
+   "interaction": {
+    "type": "view",
+    "label": "Contemplar",
+    "view_offset": [
+     60,
+     -110
+    ],
+    "caption": "Desde aquí se ve todo lo que todavía nos queda por construir."
+   }
+  }
+ ]
+}

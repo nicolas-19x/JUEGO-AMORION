@@ -90,6 +90,11 @@ func _relayout() -> void:
 	display.size = Vector2(vp) * pixel_scale / _k
 
 
+## Cuántos píxeles del mundo equivalen a una unidad de la interfaz.
+func ui_to_world_scale() -> float:
+	return _k / pixel_scale
+
+
 ## Convierte una posición de la interfaz en coordenadas del mundo.
 func screen_to_world(ui_pos: Vector2) -> Vector2:
 	var vp_pos := ui_pos * _k / pixel_scale

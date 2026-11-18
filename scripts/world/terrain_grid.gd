@@ -26,6 +26,7 @@ var _decorated_chance: Array = []
 var _dist_image: Image
 var _dist_texture: ImageTexture
 var _collision: StaticBody2D
+var _dirty := false
 
 
 func build(map: Dictionary) -> void:
@@ -83,15 +84,42 @@ func pixel_size() -> Vector2:
 # ------------------------------------------------------------------ edición
 ## Cambia el material de una celda (base de la herramienta de terreno, Fase 2).
 func paint(c: Vector2i, material: int) -> void:
+	if set_cell_fast(c, material):
+		finalize_changes()
+		changed.emit(c)
+
+
+## Cambia una celda y sus tiles visibles al instante (para pintar con el dedo).
+## El agua y las colisiones se recalculan al final con finalize_changes().
+func set_cell_fast(c: Vector2i, material: int) -> bool:
 	if not in_bounds(c) or material_at(c) == material:
-		return
+		return false
 	cells[c.y * size.x + c.x] = material
 	for dj in 2:
 		for di in 2:
 			_refresh_display_cell(c.x + di, c.y + dj)
+	_dirty = true
+	return true
+
+
+func finalize_changes() -> void:
+	if not _dirty:
+		return
+	_dirty = false
 	_rebuild_water_distance()
 	_rebuild_collision()
-	changed.emit(c)
+
+
+func load_rows(rows: Array) -> void:
+	for y in mini(size.y, rows.size()):
+		var row: String = rows[y]
+		for x in mini(size.x, row.length()):
+			cells[y * size.x + x] = row.unicode_at(x) - 48
+	for j in size.y + 1:
+		for i in size.x + 1:
+			_refresh_display_cell(i, j)
+	_dirty = true
+	finalize_changes()
 
 
 ## Datos serializables (guardado local y sincronización futura).

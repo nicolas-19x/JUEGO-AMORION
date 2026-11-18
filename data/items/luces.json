@@ -1,0 +1,85 @@
+{
+ "items": [
+  {
+   "id": "lamp_post",
+   "name": "Farol",
+   "tab": "luces",
+   "category": "luces",
+   "sprite": "res://assets/furniture/lamp_post.png",
+   "anchor": [
+    6,
+    31
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -3,
+    -3,
+    6,
+    3
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "sand"
+   ],
+   "light": {
+    "offset": [
+     0,
+     -25
+    ],
+    "scale": 1.1,
+    "color": "#ffd890",
+    "energy": 0.95
+   },
+   "interaction": {
+    "type": "toggle_light",
+    "label": "Farol"
+   }
+  },
+  {
+   "id": "garden_lantern",
+   "name": "Farolillo",
+   "tab": "luces",
+   "category": "luces",
+   "sprite": "res://assets/furniture/garden_lantern.png",
+   "anchor": [
+    5,
+    20
+   ],
+   "footprint": [
+    1,
+    1
+   ],
+   "collision": [
+    -2,
+    -2,
+    4,
+    2
+   ],
+   "surfaces": [
+    "grass",
+    "dirt",
+    "cobble",
+    "sand",
+    "wood"
+   ],
+   "light": {
+    "offset": [
+     0,
+     -14
+    ],
+    "scale": 0.6,
+    "color": "#ffcf86",
+    "energy": 0.9
+   },
+   "interaction": {
+    "type": "toggle_light",
+    "label": "Farolillo"
+   }
+  }
+ ]
+}

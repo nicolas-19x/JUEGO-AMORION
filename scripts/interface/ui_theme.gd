@@ -22,6 +22,19 @@ static func font(weight := 700) -> Font:
 	return _fonts[weight]
 
 
+## Icono pixel art a escala entera, nítido dentro de la interfaz.
+static func pixel_icon(path: String, scale: int) -> TextureRect:
+	var r := TextureRect.new()
+	r.texture = load(path)
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	r.custom_minimum_size = r.texture.get_size() * scale
+	r.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return r
+
+
 static func panel_box(bg := CREAM, radius := 26, margin := 28.0) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = bg
