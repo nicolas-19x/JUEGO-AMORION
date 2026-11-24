@@ -4,12 +4,14 @@ extends Node
 ## contactos → separación → efectos → cámara) para que todo sea predecible.
 
 const PLAYER_PALETTE := {
-	"body": Color(0.86, 0.82, 0.75), "wrap": Color(0.1, 0.4, 0.43), "mask": Color(0.13, 0.13, 0.16),
-	"accent": Color(0.08, 0.5, 0.52), "visor": Color(1.0, 0.62, 0.28) * 2.2, "rim": Color(1.0, 0.74, 0.5),
+	"skin": Color(0.62, 0.42, 0.31), "top": Color(0.88, 0.86, 0.81), "pants": Color(0.15, 0.17, 0.23),
+	"wrap": Color(0.86, 0.82, 0.73), "accent": Color(0.08, 0.48, 0.5), "hair": Color(0.07, 0.05, 0.05),
+	"shoe": Color(0.12, 0.12, 0.14), "bun": true, "rim": Color(1.0, 0.74, 0.5),
 }
 const FOE_PALETTE := {
-	"body": Color(0.22, 0.21, 0.25), "wrap": Color(0.6, 0.12, 0.12), "mask": Color(0.86, 0.83, 0.76),
-	"accent": Color(0.66, 0.13, 0.12), "visor": Color(1.0, 0.18, 0.12) * 2.4, "rim": Color(1.0, 0.55, 0.42),
+	"skin": Color(0.86, 0.68, 0.57), "pants": Color(0.1, 0.09, 0.1), "wrap": Color(0.62, 0.12, 0.12),
+	"accent": Color(0.66, 0.13, 0.12), "hair": Color(0.14, 0.12, 0.11), "shoe": Color(0.08, 0.07, 0.07),
+	"beard": true, "rim": Color(1.0, 0.55, 0.42),
 }
 const LEVEL_NAMES := ["Aprendiz", "Duelo", "Maestro"]
 
@@ -44,6 +46,9 @@ var _combo_show := 0.0
 var _combo_n := 0
 var _menu_yaw := 0.0
 var _hit_log: Array = []
+var _blood_btn: Button
+var _drip_t := {}
+const PREFS := "user://prefs.cfg"
 
 
 func _ready() -> void:
@@ -69,6 +74,7 @@ func _ready() -> void:
 		f.whoosh.connect(_on_whoosh)
 		f.wall_impact.connect(_on_wall)
 		f.knocked_out.connect(_on_ko)
+		f.guard_crushed.connect(_on_guard_crushed)
 	fx = ImpactFx.new()
 	world.add_child(fx)
 	cam = CombatCamera.new()
@@ -76,6 +82,7 @@ func _ready() -> void:
 	cam.player = player
 	cam.foe = foe
 	cam.current = true
+	_load_prefs()
 	_build_ui()
 	Sfx.start_music()
 	_enter_menu()
@@ -130,6 +137,7 @@ func sim_step(delta: float) -> void:
 	_trails()
 	fx.process_fx(delta, cam)
 	cam.update(delta)
+	touch.counter_glow = phase == "fight" and player.counter_t > 0.0
 	touch.special_visible = phase == "fight" and player.can_act() and foe.is_vulnerable_to_special() \
 		and player.global_position.distance_to(foe.global_position) < 2.2
 	if phase == "ko" and phase_t > 2.6:
@@ -227,7 +235,7 @@ func _on_special() -> void:
 
 func _check_hits(a: Fighter, b: Fighter, delta: float) -> void:
 	var h := a.active_hit()
-	if h.is_empty() or b.state == "ko" or b.in_iframes():
+	if h.is_empty() or b.state == "ko" or a.evaded:
 		return
 	var limb: String = h.limb
 	var p: Vector3 = a.rig.points[limb]
@@ -238,10 +246,44 @@ func _check_hits(a: Fighter, b: Fighter, delta: float) -> void:
 	var r := Geometry3D.get_closest_points_between_segments(pp, p, q1, q2)
 	var d := (r[0] as Vector3).distance_to(r[1])
 	if d > float(h.r) + 0.17:
+		# esquiva en el último momento: el golpe pasa rozando → contraataque
+		if b.in_iframes() and d < float(h.r) + 0.45 and b.move.get("name", "") == "dodge":
+			_on_evade(b, a)
+		return
+	if b.in_iframes():
+		_on_evade(b, a)
 		return
 	var contact: Vector3 = (r[1] as Vector3) + ((r[0] as Vector3) - (r[1] as Vector3)).normalized() * 0.16
 	var info := a.resolve_hit(b, h, contact, lv)
 	_on_hit(info, lv)
+
+
+func _on_evade(who: Fighter, attacker: Fighter) -> void:
+	attacker.evaded = true
+	who.counter_t = 0.75
+	Sfx.play("whoosh", -4.0, 0.8)
+	cam.kick_fov(2.0)
+	if who == player:
+		Engine.time_scale = 0.45
+		slowmo_t = 0.28
+		_flash_text("¡CONTRA!")
+
+
+func _on_guard_crushed(who: Fighter) -> void:
+	Sfx.play("hit_h", -6.0, 0.8)
+	cam.add_trauma(0.3)
+	if who == foe:
+		_flash_text("GUARDIA ROTA")
+
+
+func _flash_text(t: String) -> void:
+	_banner.text = t
+	_banner.add_theme_font_size_override("font_size", 44)
+	_banner.modulate.a = 1.0
+	var tw := create_tween()
+	tw.set_ignore_time_scale(true)
+	tw.tween_interval(0.45)
+	tw.tween_property(_banner, "modulate:a", 0.0, 0.3)
 
 
 func _on_hit(info: Dictionary, lv: Vector3) -> void:
@@ -271,8 +313,22 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 		_:
 			var lvl: int = level + (1 if info.get("counter", false) else 0)
 			fx.impact(info.point, dir, lvl, "hit")
+			var victim: Fighter = info.victim
+			if info.move != "shove" and FighterRig.blood_mode > 0:
+				var head: bool = info.get("region", "") == "head"
+				var amount := (lvl - 1) * 0.5 + (0.6 if head else 0.2) + victim.bleed * 0.6
+				if FighterRig.blood_mode == 1:
+					amount *= 0.4
+				if amount > 0.35:
+					fx.blood(info.point, dir + Vector3.UP * 0.25, amount)
+			if info.move == "uppercut" and info.get("counter", false):
+				Engine.time_scale = 0.3
+				slowmo_t = 0.45
+				cam.kick_fov(6.0)
 			var bank := "hit_l" if lvl <= 1 else ("hit_m" if lvl == 2 else "hit_h")
 			Sfx.play(bank, -2.0 + lvl, 1.0 + (0.05 if info.victim == foe else -0.04))
+			if lvl >= 2 and FighterRig.blood_mode > 0 and info.move != "shove":
+				Sfx.play("wet", -10.0 + lvl * 2.0, 1.0, 0.1)
 			cam.add_trauma([0.0, 0.14, 0.22, 0.38, 0.5, 0.6][clampi(lvl, 0, 5)])
 			if lvl >= 3:
 				cam.kick_fov(2.5 + lvl)
@@ -283,6 +339,13 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 
 
 func _events(f: Fighter) -> void:
+	# goteo de sangre de nariz y ceja
+	if f.bleed > 0.08 and FighterRig.blood_mode > 0:
+		var t: float = _drip_t.get(f, 0.0) - get_physics_process_delta_time()
+		if t <= 0.0:
+			t = randf_range(0.5, 1.4) / (0.4 + f.bleed)
+			fx.drip(f.rig.points.get("nose", f.global_position + Vector3.UP * 1.6))
+		_drip_t[f] = t
 	# caída al suelo en las reacciones de derribo
 	if f.move.is_empty():
 		return
@@ -345,6 +408,8 @@ func _on_whoosh(_f: Fighter, kind: int) -> void:
 func _on_wall(f: Fighter, point: Vector3, strength: float) -> void:
 	Sfx.play("wall", 0.0)
 	fx.dust(point, 20, 1.6)
+	if FighterRig.blood_mode > 0 and f.bleed > 0.15:
+		fx.wall_stain(point + Vector3.DOWN * 0.2, f.global_transform.basis.z, 0.5 + f.bleed * 0.4)
 	fx.impact(point, Vector3.UP, 3, "hit")
 	cam.add_trauma(0.55)
 	cam.kick_fov(5.0)
@@ -390,6 +455,7 @@ func _enter_menu() -> void:
 	player.reset(Vector3(-0.5, 0, 0.9), Vector3(0.5, 0, -0.9))
 	foe.reset(Vector3(0.5, 0, -0.9), Vector3(-0.5, 0, 0.9))
 	arena.reset_props()
+	fx.clear_stains()
 	cam.cine_t = -1.0
 	_menu_root.visible = true
 	_result_root.visible = false
@@ -420,6 +486,7 @@ func start_fight() -> void:
 	player.reset(Vector3(0, 0, 1.5), Vector3(0, 0, -1))
 	foe.reset(Vector3(0, 0, -1.5), Vector3(0, 0, 1))
 	arena.reset_props()
+	fx.clear_stains()
 	ai = AiBrain.new(foe, player, difficulty)
 	cam.cine_t = -1.0
 	cam.trauma = 0.0
@@ -437,10 +504,10 @@ func start_fight() -> void:
 	Sfx.set_drums(-17.0, 2.0)
 	if not _shown_hint:
 		_shown_hint = true
-		_hint.text = "Toca GOLPE para encadenar · Joystick hacia el rival + GOLPE: patada fuerte (mantén para cargar)\nMantén DEFENSA para cubrirte · Tócala justo antes del golpe para parar · Con dirección: esquiva"
+		_hint.text = "GOLPE: combo (pegado al rival sale un gancho) · Hacia el rival + GOLPE: patada fuerte · Atrás + GOLPE: empujón\nDEFENSA: cubrirse (la barra blanca se llena) · justo a tiempo: parada · con dirección lateral: esquiva → ¡CONTRA!"
 		_hint.modulate.a = 1.0
 		var tw := create_tween()
-		tw.tween_interval(6.0)
+		tw.tween_interval(8.0)
 		tw.tween_property(_hint, "modulate:a", 0.0, 1.0)
 
 
@@ -528,8 +595,13 @@ func _build_ui() -> void:
 		b.button_group = group
 		b.button_pressed = i == difficulty
 		b.custom_minimum_size = Vector2(150, 58)
-		b.pressed.connect(func(): difficulty = i; Sfx.play("ui_tap", -8.0, 1.0 + i * 0.1, 0.0))
+		b.pressed.connect(func(): difficulty = i; _save_prefs(); Sfx.play("ui_tap", -8.0, 1.0 + i * 0.1, 0.0))
 		diff_row.add_child(b)
+	_blood_btn = _button("", 20)
+	_blood_btn.custom_minimum_size = Vector2(470, 48)
+	_blood_btn.pressed.connect(_cycle_blood)
+	col.add_child(_blood_btn)
+	_update_blood_btn()
 	var go := _button("COMBATIR", 32)
 	go.custom_minimum_size = Vector2(470, 84)
 	go.pressed.connect(start_fight)
@@ -633,7 +705,35 @@ func _button(text: String, size: int) -> Button:
 	return b
 
 
+func _cycle_blood() -> void:
+	FighterRig.blood_mode = (FighterRig.blood_mode + 2) % 3
+	_update_blood_btn()
+	_save_prefs()
+	Sfx.play("ui_tap", -8.0, 1.0, 0.0)
+	for f in [player, foe]:
+		(f as Fighter).rig.update_face(0.1)
+
+
+func _update_blood_btn() -> void:
+	_blood_btn.text = "Sangre: " + ["Apagada", "Reducida", "Normal"][FighterRig.blood_mode]
+
+
+func _load_prefs() -> void:
+	var cf := ConfigFile.new()
+	if cf.load(PREFS) == OK:
+		FighterRig.blood_mode = int(cf.get_value("juego", "sangre", 2))
+		difficulty = int(cf.get_value("juego", "dificultad", 1))
+
+
+func _save_prefs() -> void:
+	var cf := ConfigFile.new()
+	cf.set_value("juego", "sangre", FighterRig.blood_mode)
+	cf.set_value("juego", "dificultad", difficulty)
+	cf.save(PREFS)
+
+
 func _banner_show(text: String, hold: float) -> void:
+	_banner.add_theme_font_size_override("font_size", 64)
 	_banner.text = text
 	_banner.modulate.a = 1.0
 	_banner.scale = Vector2.ONE
@@ -661,8 +761,18 @@ func _draw_hud() -> void:
 		if frac < 0.3:
 			hc = hc.lerp(Color(1, 0.2, 0.15), 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.01))
 		_bar(x0, y, w, 16, frac, hc, left, sk)
+		# equilibrio: barra fina bajo la vida; parpadea cerca de romperse
+		var pf := clampf(f.posture / 100.0, 0.0, 1.0)
+		var pc := Color(0.95, 0.9, 0.78, 0.85)
+		if pf > 0.75:
+			pc = pc.lerp(Color(1, 0.35, 0.2), 0.5 + 0.5 * sin(Time.get_ticks_msec() * 0.02))
+		_bar(x0, y + 20, w * 0.7 if left else w, 6, 0.0, Color(0, 0, 0, 0), left, 4)
+		var pw := w * 0.6
+		var px := x0 if left else x0 + w - pw
+		_bar(px, y + 21, pw, 6, 1.0, Color(0.05, 0.04, 0.06, 0.5), left, 4)
+		_bar(px, y + 21, pw, 6, pf, pc, left, 4)
 		var name_x := x0 if left else x0 + w - font.get_string_size(f.display_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 20).x
-		hud.draw_string(font, Vector2(name_x, y + 42), f.display_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.93, 0.85, 0.9))
+		hud.draw_string(font, Vector2(name_x, y + 50), f.display_name, HORIZONTAL_ALIGNMENT_LEFT, -1, 20, Color(1, 0.93, 0.85, 0.9))
 	if _combo_show > 0.0:
 		_combo_show -= get_physics_process_delta_time()
 		if _combo_n >= 2:

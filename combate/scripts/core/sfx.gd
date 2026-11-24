@@ -12,7 +12,7 @@ var drums: AudioStreamPlayer
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	for bank in [["hit_l", 4], ["hit_m", 3], ["hit_h", 3], ["block", 3], ["whoosh", 3], ["step", 4]]:
+	for bank in [["hit_l", 4], ["hit_m", 3], ["hit_h", 3], ["block", 3], ["whoosh", 3], ["step", 4], ["wet", 3]]:
 		var arr := []
 		for i in bank[1]:
 			arr.append(load(DIR + "%s_%d.wav" % [bank[0], i]))

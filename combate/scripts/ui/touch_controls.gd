@@ -19,6 +19,7 @@ const STICK_R := 78.0
 
 var stick := Vector2.ZERO
 var special_visible := false
+var counter_glow := false
 var enabled := true
 var _touches := {}       # índice → rol
 var _stick_origin := Vector2.ZERO
@@ -172,7 +173,11 @@ func _draw() -> void:
 	var knob := _stick_pos if has_stick else base
 	draw_circle(knob, 30, Color(1.0, 0.9, 0.78, 0.42 * a + 0.1))
 	# botones
-	_button("attack", "GOLPE", Color(1.0, 0.62, 0.35))
+	if counter_glow:
+		var c := _center("attack")
+		var k := 0.5 + 0.5 * sin(_pulse * 22.0)
+		draw_circle(c, _radius("attack") * (1.15 + 0.08 * k), Color(1.0, 0.82, 0.3, 0.25 + 0.2 * k))
+	_button("attack", "CONTRA" if counter_glow else "GOLPE", Color(1.0, 0.85, 0.3) if counter_glow else Color(1.0, 0.62, 0.35))
 	_button("guard", "DEFENSA", Color(0.55, 0.8, 0.95))
 	if _special_alpha > 0.01:
 		_button("special", "REMATE", Color(1.0, 0.85, 0.4), _special_alpha)

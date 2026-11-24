@@ -1,6 +1,44 @@
 # Estado del prototipo
 
-Versión 0.1.0 · 24 de noviembre de 2026
+Versión 0.2.0 · 24 de noviembre de 2026
+
+## Novedades de la 0.2.0 (segundo prototipo)
+
+**Visual y violencia (contenida, sin gore):**
+- Personajes rediseñados como peleadores callejeros: piel, cara (nariz, cejas,
+  ojos, boca, orejas, pelo, moño o barba), camiseta de tirantes o torso desnudo,
+  pantalón, vendas en las manos (ya no parecen guantes de boxeo).
+- Daño por zona con un shader propio: cada impacto deja marca en el punto real
+  de contacto (rojo → moretón morado; en ropa, mancha de sangre). La cara
+  acumula nariz sangrando, labio partido, ceja abierta en el lado golpeado y ojo
+  que se hincha y se cierra. Torso castigado = postura encorvada. Sudor con el
+  cansancio. Todo se limpia en la revancha.
+- Sangre: salpicadura corta en impactos fuertes, gotas que caen de la nariz o la
+  ceja mientras sangra y manchas que se quedan en suelo y pared (máx. 40).
+- Capa de sonido "húmeda" en golpes fuertes. Opción Sangre: Normal / Reducida /
+  Apagada.
+
+**Dinámica:**
+- Barra de equilibrio bajo la vida: bloquear la llena; llena = guardia rota y
+  aturdido (remate disponible). Se recupera sola sin presión.
+- El mismo botón elige el golpe: pegado al rival sale un gancho corto; atrás +
+  golpe es un empujón sin daño que rompe el equilibrio y estampa contra la pared.
+- Esquiva lateral de cintura: si un golpe pasa rozando, se abre una ventana de
+  contraataque (el botón brilla y dice CONTRA) y sale un uppercut a cámara lenta
+  que derriba.
+- La IA usa todo lo anterior: esquiva lateral y contraataca, empuja para abrir
+  guardias o salir de las esquinas, y entra en distancia cuando quiere golpear.
+
+**Verificado (0.2.0):** 0 fallos en ~1800 comprobaciones, incluidas pruebas de
+gancho/empujón por contexto, empujón contra la pared, esquiva → uppercut de
+contragolpe, rotura de guardia por equilibrio, lesiones visibles y revancha
+limpia. Capturas reales de heridas (`docs/capturas/heridas.jpg`). APK exportado
+y firma verificada. **Sin probar en teléfono.**
+
+**Pendiente de ajustar con manos reales:** el jugador que aporrea el botón
+todavía gana a menudo en Aprendiz y Duelo; los combos encadenados no dejan
+escapar a la víctima (es intencionado, pero puede necesitar más huecos).
+
 
 ## Verificado
 
@@ -17,9 +55,6 @@ Versión 0.1.0 · 24 de noviembre de 2026
 
 ## No verificado todavía
 
-- ❌ **APK no exportado.** En este entorno de desarrollo la red no permite
-  descargar el Android SDK (dl.google.com bloqueado); las plantillas de Godot sí
-  están. Hay que exportar en un ordenador con el SDK (ver README).
 - ❌ **Nada probado en un teléfono**: rendimiento real, tacto de los controles,
   vibración, muescas, temperatura.
 - ❌ **El sonido no se ha escuchado**: está sintetizado y medido (niveles), pero

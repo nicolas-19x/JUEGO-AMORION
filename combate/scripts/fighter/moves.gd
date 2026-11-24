@@ -197,6 +197,70 @@ static func all() -> Dictionary:
 		"hit": {"from": 0.37, "to": 0.48, "limb": "knee_r", "r": 0.17, "dmg": 18.0, "level": 4, "push": 1.3,
 			"react": "launch", "unblockable": true},
 	}
+	# gancho corto: sale solo cuando el rival está pegado (golpe por contexto)
+	m["hook"] = {
+		"dur": 0.46, "kind": "attack", "cancel": 0.2, "chain": "cross", "track": 0.08,
+		"reach": 0.6, "lunge": 0.25, "whoosh": [0.09, 1],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.07, "e": "io", "hips_pos": Vector3(0, -0.12, 0.01), "hips_rot": Vector3(0, -36, 0),
+				"chest_rot": Vector3(-6, -18, 0), "hand_l": Vector3(-0.22, 1.5, -0.2), "elbow_l": Vector3(-1, -0.2, 0.3)},
+			{"t": 0.14, "e": "in", "hips_pos": Vector3(0, -0.13, -0.04), "hips_rot": Vector3(0, 4, 0),
+				"spine_rot": Vector3(-6, 0, 0), "chest_rot": Vector3(-8, 28, 0), "head_rot": Vector3(-8, -12, 0),
+				"hand_l": Vector3(0.1, 1.55, -0.44), "elbow_l": Vector3(-1, 0.45, 0.1), "hand_r": Vector3(0.1, 1.57, -0.14)},
+			{"t": 0.19, "e": "out", "hips_pos": Vector3(0, -0.13, -0.04), "hips_rot": Vector3(0, 8, 0),
+				"chest_rot": Vector3(-8, 34, 0), "hand_l": Vector3(0.2, 1.53, -0.32), "elbow_l": Vector3(-1, 0.45, 0.1),
+				"hand_r": Vector3(0.1, 1.57, -0.14)},
+			{"t": 0.34, "e": "io", "hand_l": Vector3(-0.04, 1.55, -0.3), "chest_rot": Vector3(-4, -6, 0)},
+			{"t": 0.46},
+		],
+		"root": [[0.0, 0.0], [0.14, 0.1], [0.3, 0.12]],
+		"hit": {"from": 0.11, "to": 0.18, "limb": "hand_l", "r": 0.13, "dmg": 8.0, "level": 2, "push": 1.0},
+	}
+	# empujón: sin apenas daño, rompe el equilibrio y manda contra la pared
+	m["shove"] = {
+		"dur": 0.56, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.06,
+		"reach": 0.55, "lunge": 0.4, "whoosh": [0.12, 0],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.08, "e": "io", "hips_pos": Vector3(0, -0.15, 0.04), "hips_rot": Vector3(0, -6, 0),
+				"chest_rot": Vector3(-10, 0, 0), "hand_l": Vector3(-0.13, 1.32, -0.12), "hand_r": Vector3(0.13, 1.32, -0.12),
+				"elbow_l": Vector3(-0.6, -1, 0.3), "elbow_r": Vector3(0.6, -1, 0.3)},
+			{"t": 0.17, "e": "in", "hips_pos": Vector3(0, -0.1, -0.13), "hips_rot": Vector3(0, 0, 0),
+				"spine_rot": Vector3(-13, 0, 0), "chest_rot": Vector3(-8, 0, 0), "head_rot": Vector3(-6, 0, 0),
+				"hand_l": Vector3(-0.15, 1.34, -0.62), "hand_r": Vector3(0.15, 1.34, -0.62),
+				"elbow_l": Vector3(-0.6, -1, 0.3), "elbow_r": Vector3(0.6, -1, 0.3)},
+			{"t": 0.26, "e": "out", "hips_pos": Vector3(0, -0.1, -0.12), "spine_rot": Vector3(-10, 0, 0),
+				"hand_l": Vector3(-0.15, 1.34, -0.56), "hand_r": Vector3(0.15, 1.34, -0.56)},
+			{"t": 0.42, "e": "io", "hand_l": Vector3(-0.03, 1.52, -0.3), "hand_r": Vector3(0.13, 1.5, -0.16)},
+			{"t": 0.56},
+		],
+		"root": [[0.0, 0.0], [0.17, 0.26], [0.3, 0.3]],
+		"hit": {"from": 0.13, "to": 0.22, "limb": "hand_r", "r": 0.22, "dmg": 1.5, "level": 1, "push": 1.75,
+			"react": "stagger", "unblockable": true, "posture": 24.0, "clean": true},
+	}
+	# uppercut de contraataque: solo tras esquivar un golpe en el último momento
+	m["uppercut"] = {
+		"dur": 0.62, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.09,
+		"reach": 0.62, "lunge": 0.5, "whoosh": [0.12, 1],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.1, "e": "io", "hips_pos": Vector3(0, -0.25, 0.02), "hips_rot": Vector3(0, -32, -6),
+				"spine_rot": Vector3(-14, 0, 0), "chest_rot": Vector3(-10, -18, 0),
+				"hand_r": Vector3(0.17, 1.24, -0.12), "elbow_r": Vector3(0.4, -1, 0.3), "hand_l": Vector3(-0.04, 1.52, -0.28)},
+			{"t": 0.19, "e": "in", "hips_pos": Vector3(0, -0.03, -0.07), "hips_rot": Vector3(0, 10, 0),
+				"spine_rot": Vector3(6, 0, 0), "chest_rot": Vector3(4, 25, 0), "head_rot": Vector3(-14, -10, 0),
+				"hand_r": Vector3(0.03, 1.64, -0.42), "elbow_r": Vector3(0.3, -1, 0.2), "hand_l": Vector3(-0.06, 1.55, -0.2)},
+			{"t": 0.27, "e": "out", "hips_pos": Vector3(0, -0.02, -0.07), "hips_rot": Vector3(0, 12, 0),
+				"spine_rot": Vector3(8, 0, 0), "chest_rot": Vector3(6, 28, 0),
+				"hand_r": Vector3(0.02, 1.78, -0.32), "elbow_r": Vector3(0.3, -1, 0.2), "hand_l": Vector3(-0.06, 1.55, -0.2)},
+			{"t": 0.45, "e": "io", "hand_r": Vector3(0.13, 1.52, -0.2), "chest_rot": Vector3(-3, -4, 0)},
+			{"t": 0.62},
+		],
+		"root": [[0.0, 0.0], [0.19, 0.2], [0.35, 0.24]],
+		"hit": {"from": 0.15, "to": 0.24, "limb": "hand_r", "r": 0.14, "dmg": 13.0, "level": 3, "push": 1.4,
+			"react": "launch", "unblockable": true},
+	}
 	m["dodge"] = {
 		"dur": 0.38, "kind": "dodge", "iframes": [0.02, 0.24],
 		"kf": [

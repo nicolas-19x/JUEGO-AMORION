@@ -134,6 +134,12 @@ def main(out):
         save(f"{out}/whoosh_{i}.wav", whoosh(d, i), 0.6)
     for i in range(4):
         save(f"{out}/step_{i}.wav", step(i), 0.5)
+    # capa húmeda para golpes fuertes: impacto carnoso corto
+    for i in range(3):
+        d = 0.18
+        sq = lowpass(noise(d), 1200 + i * 250) * env(d, 0.001, 32)
+        body = sweep(d, 220 - i * 20, 80, 30) * env(d, 0.001, 40)
+        save(f"{out}/wet_{i}.wav", mix(sq * 0.9, body * 0.6), 0.8)
     # parada: brillo metálico + golpe de aire
     d = 0.7
     ting = sum(np.sin(2 * np.pi * f * t(d)) * env(d, 0.001, k) * a

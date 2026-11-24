@@ -6,13 +6,18 @@ está puesto en que cada golpe se sienta bien.
 
 ![Menú](docs/capturas/menu.jpg)
 ![Combate](docs/capturas/combate.jpg)
+![Heridas](docs/capturas/heridas.jpg)
 
 ## Estado
 
-**Prototipo jugable en Godot 4.6.2.** Las pruebas automáticas pasan (~1700
+**Versión 0.2.0: segundo prototipo.** Luchadores callejeros con cara, piel y
+ropa; daño visible por zona (moretones donde cae el golpe, nariz y labio que
+sangran, ceja abierta, ojo hinchado, sangre en la camiseta, el suelo y la pared);
+barra de equilibrio, golpes que dependen de la distancia, empujón y
+contraataque tras esquiva. **APK exportado** (ver `../apk/`). Las pruebas automáticas pasan (~1800
 comprobaciones) y el juego se ha revisado con capturas reales del renderizador
-GL Compatibility. **Todavía no se ha exportado el APK ni se ha probado en un
-teléfono** (ver [docs/ESTADO.md](docs/ESTADO.md) para el porqué y qué falta).
+GL Compatibility. **Aún no se ha probado en un teléfono** (ver
+[docs/ESTADO.md](docs/ESTADO.md)).
 
 ## Jugar en el ordenador
 
@@ -25,9 +30,11 @@ teléfono** (ver [docs/ESTADO.md](docs/ESTADO.md) para el porqué y qué falta).
 | Control | Acción |
 |---|---|
 | Joystick flotante (mitad izquierda) | Moverse; el personaje siempre encara al rival. |
-| **GOLPE** | Toques: jab → directo → patada circular. Con el joystick hacia el rival: patada frontal fuerte (mantener = cargar). |
-| **DEFENSA** | Mantener: guardia. Tocar justo antes del impacto: parada. Tocar con dirección: esquiva. |
+| **GOLPE** | Según la situación: a media distancia jab → directo → patada circular; pegado al rival, gancho corto; joystick hacia el rival, patada frontal fuerte (mantener = cargar); joystick hacia atrás, empujón (contra la pared lo estampa). |
+| **DEFENSA** | Mantener: guardia (llena la barra de equilibrio; llena = guardia rota). Tocar justo antes del impacto: parada. Con dirección lateral: esquiva de cintura; si un golpe pasa rozando, el botón se vuelve **CONTRA** y sale un uppercut a cámara lenta. Con dirección hacia atrás: paso atrás. |
 | **REMATE** | Solo aparece si el rival está aturdido: agarre + rodillazo. |
+
+En el menú: **Sangre: Normal / Reducida / Apagada** (se recuerda).
 
 ## Pruebas y capturas
 

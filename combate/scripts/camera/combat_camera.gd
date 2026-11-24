@@ -120,9 +120,12 @@ func _apply(pos: Vector3, look: Vector3, base_fov: float, delta: float) -> void:
 func _cinematic(delta: float) -> void:
 	cine_t += delta
 	var c := cine_target.rig.points.get("chest", cine_target.global_position) as Vector3
-	var ang := cam_yaw + 1.2 + cine_t * 0.25
+	# siempre desde el lado del centro del patio: nunca dentro de una pared
+	var to_center := Vector3(-c.x, 0, -c.z)
+	var base := atan2(to_center.x, to_center.z) if to_center.length() > 0.5 else cam_yaw + 1.2
+	var ang := base + 0.5 + cine_t * 0.2
 	var dist := 3.2 - minf(cine_t, 2.0) * 0.25
-	var pos := c + Basis(Vector3.UP, ang) * Vector3(0, 0, dist) + Vector3.UP * (0.45 + cine_t * 0.08)
+	var pos := c + Basis(Vector3.UP, ang) * Vector3(0, 0, dist) + Vector3.UP * (0.7 + cine_t * 0.1)
 	var space := get_world_3d().direct_space_state
 	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(c, pos, 1 | 8))
 	if hit:

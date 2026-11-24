@@ -64,6 +64,10 @@ func update(delta: float) -> void:
 		attack_cd = maxf(attack_cd, _p(0.9, 0.5, 0.3))
 	_last_hp = me.hp
 	mood_t -= delta
+	# acorralada y presionada: cambia a agresiva para salir intercambiando
+	if me.combo_taken >= 2 and mood == "cautious" and randf() < _p(0.002, 0.01, 0.02):
+		mood = "aggressive"
+		mood_t = 1.5
 	if mood_t <= 0.0:
 		var r := randf()
 		mood = "aggressive" if r < _p(0.25, 0.4, 0.5) else ("cautious" if r < 0.6 else "neutral")
@@ -87,7 +91,8 @@ func update(delta: float) -> void:
 				_guard_until = _t + 0.3
 			"dodge":
 				var side := strafe if randf() < 0.6 else -strafe
-				c.dodge = (right * side - fwd * 0.6).normalized()
+				# esquiva lateral (abre contraataque); a veces solo un paso atrás
+				c.dodge = right * side if randf() < _p(0.4, 0.7, 0.9) else (right * side - fwd).normalized()
 		_react_at = -1.0
 	if _guard_pending > 0.0 and me.can_act():
 		_guard_until = _t + _guard_pending
@@ -107,6 +112,10 @@ func update(delta: float) -> void:
 		c.move = -fwd * 0.3 if dist < 1.2 else Vector3.ZERO
 		return
 
+	# tras esquivar un golpe: contraataque (más a menudo cuanto mejor es)
+	if me.counter_t > 0.0 and me.can_act() and randf() < _p(0.04, 0.12, 0.3):
+		c.light = true
+		return
 	if not me.can_act():
 		# durante un combo propio: decidir si lo continúa
 		if me.state == "attack" and combo_left > 0 and me.move_t > float(me.move.get("cancel", 99.0)) - 0.1:
@@ -138,6 +147,8 @@ func update(delta: float) -> void:
 		want = 1.25
 	elif mood == "cautious":
 		want = pref_range + 0.5
+	if attack_cd <= 0.0:
+		want = 1.15  # lista para golpear: entra en distancia
 	var mv := Vector3.ZERO
 	if dist > want + 0.25:
 		mv += fwd
@@ -156,13 +167,26 @@ func update(delta: float) -> void:
 	# atacar
 	if attack_cd <= 0.0:
 		var reach := 1.45 + (0.45 if randf() < _p(0.25, 0.12, 0.05) else 0.0)  # error: atacar desde lejos
-		if dist < reach and randf() < _p(0.025, 0.05, 0.08) * (2.0 if mood == "aggressive" else 1.0):
+		var eager := 2.0 if mood == "aggressive" else 1.0
+		if dist < 1.2:
+			eager *= 2.5  # con el rival encima no se queda quieta
+		if dist < reach and randf() < _p(0.025, 0.05, 0.08) * eager:
 			_attack(dist, false)
 
 
 func _attack(dist: float, punish: bool) -> void:
 	var c := me.ctrl
 	var r := randf()
+	var from_center := Vector3(me.global_position.x, 0, me.global_position.z).length()
+	# empujón: para abrir una guardia cerrada o salir de una esquina
+	if not punish and dist < 1.15 and ((foe.state == "block" and r < 0.35) or (from_center > 3.0 and r < 0.5)):
+		var away := me.global_position - foe.global_position
+		away.y = 0
+		c.move = away.normalized()
+		c.light = true
+		combo_left = 0
+		attack_cd = randf_range(_p(1.4, 0.8, 0.5), _p(2.6, 1.7, 1.1))
+		return
 	if not punish and foe.state == "block" and dist < 1.9 and r < 0.45:
 		c.heavy = true
 		combo_left = 0

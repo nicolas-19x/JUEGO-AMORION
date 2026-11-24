@@ -72,6 +72,57 @@ func _process(_delta: float) -> bool:
 				if frame == 12:
 					_shot("pose_%s_%s_%d" % [mv, args[3], int(ang)])
 					return true
+		"damage":
+			# primeros planos con heridas: cara y torso tras un combate duro
+			if frame == 3:
+				main.start_fight()
+				main.paused = true
+				main._hint.modulate.a = 0.0
+				main._banner.modulate.a = 0.0
+				main.touch.visible = false
+				var p = main.player
+				var f = main.foe
+				p.reset(Vector3(0, 0, 0.9), Vector3(0, 0, -1))
+				f.reset(Vector3(0, 0, -0.9), Vector3(0, 0, 1))
+				for i in 4:
+					p._update_rig(0.016)
+					f._update_rig(0.016)
+			if frame == 5:
+				var p = main.player
+				var f = main.foe
+				var lvl := int(args[2]) if args.size() > 2 else 3
+				for fi in [f, p]:
+					if fi == p and lvl < 2:
+						continue
+					var h: Vector3 = fi.rig.points.head
+					var c: Vector3 = fi.rig.points.chest
+					var fwd: Vector3 = -fi.global_transform.basis.z
+					var rt: Vector3 = fi.global_transform.basis.x
+					for k in lvl * 2:
+						fi._take_injury(h + fwd * 0.1 + rt * 0.05 * (1 if k % 2 else -1), 9.0, 2 + (k % 2), 1.0 if k % 2 else -1.0, true, k == 3)
+						fi._take_injury(c + fwd * 0.12 + rt * (0.08 if k % 2 else -0.06) + Vector3.UP * (0.05 * (k % 3)), 9.0, 2, 1.0, false, false)
+					fi.bleed = 0.6
+					fi.hp = 40
+				var fx = main.fx
+				for k in 6:
+					fx.blood(f.rig.points.head + Vector3(0, 0, 0.1), Vector3(0.3, 0.2, 1.0), 1.2)
+				for i in 30:
+					fx.process_fx(1.0 / 60.0, main.cam)
+			if frame >= 6:
+				var who = main.foe if args.size() < 4 or args[3] == "foe" else main.player
+				var tgt: Vector3 = who.rig.points.head if args.size() < 5 or args[4] == "face" else who.rig.points.chest
+				var fwd: Vector3 = -who.global_transform.basis.z
+				var cam: Camera3D = main.cam
+				var dist := 0.75 if args.size() < 5 or args[4] == "face" else 1.6
+				cam.global_position = tgt + (fwd * 0.9 + who.global_transform.basis.x * 0.35).normalized() * dist + Vector3.UP * 0.05
+				cam.look_at(tgt, Vector3.UP)
+				cam.fov = 40
+				for i in 2:
+					main.player._update_rig(0.016)
+					main.foe._update_rig(0.016)
+				if frame == 14:
+					_shot("damage_%s_%s_%s" % [args[2] if args.size() > 2 else "3", args[3] if args.size() > 3 else "foe", args[4] if args.size() > 4 else "face"])
+					return true
 		"fight":
 			if frame == 3:
 				main.difficulty = int(args[2]) if args.size() > 2 else 1
@@ -89,6 +140,8 @@ func _process(_delta: float) -> bool:
 					p.ctrl.heavy = true
 				if frame % 30 == 0:
 					_shot("fight_%04d" % frame)
+				if main.phase == "ko" and frame % 12 == 0:
+					_shot("ko_%04d" % frame)
 				if frame > 900 or (main.phase == "result" and main.phase_t > 0.5):
 					_shot("fight_end")
 					return true

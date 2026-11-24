@@ -24,6 +24,7 @@ func _initialize() -> void:
 
 
 var _stage := 0
+var _dbg := {}
 func _process(_d: float) -> bool:
 	_stage += 1
 	if _stage < 3:
@@ -35,6 +36,8 @@ func _process(_d: float) -> bool:
 	test_wall()
 	print("== Remate sincronizado")
 	test_clinch()
+	print("== Novedades: empujón, contraataque, equilibrio, lesiones")
+	test_new()
 	print("== Combate completo (IA contra jugador guionizado)")
 	for lvl in 3:
 		test_full_fight(lvl)
@@ -186,6 +189,8 @@ func test_full_fight(lvl: int) -> void:
 	var slide := 0.0
 	var prev_feet := []
 	var frames := 0
+	var ai_attacks := 0
+	var prev_state := ""
 	for i in 60 * 70:
 		frames = i
 		if main.phase == "fight":
@@ -200,6 +205,9 @@ func test_full_fight(lvl: int) -> void:
 			if i % 200 == 150:
 				main._on_guard_up()
 		main.sim_step(1.0 / 60.0)
+		if f.state == "attack" and prev_state != "attack":
+			ai_attacks += 1
+		prev_state = f.state
 		if main.phase == "ko":
 			main.phase_t += 1.0 / 60.0
 		for fi in [p, f]:
@@ -237,8 +245,110 @@ func test_full_fight(lvl: int) -> void:
 	ok(hits >= 5, "hay intercambio de golpes")
 	ok(min_dist > 0.45, "los cuerpos no se atraviesan")
 	ok(slide < 0.0005, "los pies apoyados no patinan")
-	var by_ai := 0
+	var dist_r := {}
 	for h in main._hit_log:
-		if h.attacker == f:
-			by_ai += 1
-	ok(by_ai >= 2, "la IA también ataca")
+		var k2: String = ("IA " if h.attacker == f else "J ") + str(h.result) + " " + str(h.move) + " " + str(h.get("reaction", ""))
+		dist_r[k2] = dist_r.get(k2, 0) + 1
+	print("    ", dist_r)
+	# iniciativa: con el jugador quieto, la IA debe atacar por su cuenta
+	main.start_fight()
+	main._set_phase("fight")
+	var starts := 0
+	var prev := ""
+	for i in 60 * 10:
+		p.ctrl.move = Vector3.ZERO
+		main.sim_step(1.0 / 60.0)
+		if f.state == "attack" and prev != "attack":
+			starts += 1
+		prev = f.state
+		if main.phase != "fight":
+			break
+	ok(starts >= 3, "la IA toma la iniciativa (%d ataques en 10 s)" % starts)
+
+
+func test_new() -> void:
+	main.start_fight()
+	main.phase = "fight"
+	main.scripted = true
+	var p: Fighter = main.player
+	var f: Fighter = main.foe
+	# golpe por contexto: pegado al rival sale un gancho; con atrás, empujón
+	_place(p, f, 0.8)
+	p.ctrl.move = Vector3.ZERO
+	ok(p._pick_light() == "hook", "pegado al rival: gancho")
+	p.ctrl.move = Vector3(0, 0, 1)
+	ok(p._pick_light() == "shove", "atrás + golpe: empujón")
+	p.ctrl.move = Vector3.ZERO
+	_place(p, f, 1.4)
+	ok(p._pick_light() == "jab", "a media distancia: jab")
+	# empujón contra la pared
+	p.reset(Vector3(0, 0, -2.6), Vector3(0, 0, -5))
+	f.reset(Vector3(0, 0, -3.45), Vector3(0, 0, 0))
+	main._hit_log.clear()
+	p.start_move("shove")
+	var splat := false
+	for i in 60:
+		main.sim_step(1.0 / 60.0)
+		splat = splat or f.move.get("name", "") == "wall_splat"
+	ok(main._hit_log.size() == 1 and main._hit_log[0].damage < 3.0, "el empujón casi no hace daño")
+	ok(splat, "el empujón estampa contra la pared")
+	_run(150)
+	# esquiva lateral en el último momento → ventana de contraataque → uppercut
+	_place(p, f, 1.25)
+	main._hit_log.clear()
+	f.start_move("cross")
+	var dodged := false
+	for i in 40:
+		if not dodged and f.move_t >= 0.07:
+			p.start_dodge(p.global_transform.basis.x)
+			dodged = true
+		main.sim_step(1.0 / 60.0)
+	ok(main._hit_log.is_empty(), "la esquiva lateral evita el directo")
+	ok(f.evaded, "el golpe queda marcado como esquivado")
+	ok(p.counter_t > 0.0 or p.move.get("name", "") == "uppercut", "se abre la ventana de contraataque")
+	p.ctrl.light = true
+	var up := false
+	for i in 50:
+		main.sim_step(1.0 / 60.0)
+		up = up or p.move.get("name", "") == "uppercut"
+	ok(up, "el contraataque es un uppercut")
+	ok(main._hit_log.size() >= 1 and main._hit_log[0].get("counter", false), "el uppercut cuenta como contragolpe")
+	Engine.time_scale = 1.0
+	main.slowmo_t = 0.0
+	_run(160)
+	# equilibrio: bloquear muchos golpes rompe la guardia
+	_place(p, f, 1.3)
+	p.posture = 0.0
+	main._hit_log.clear()
+	var broke := false
+	for k in 8:
+		if broke:
+			break
+		f.start_move("cross")
+		for i in 30:
+			p.ctrl.guard = true
+			main.sim_step(1.0 / 60.0)
+		for h in main._hit_log:
+			if h.result == "guard_break":
+				broke = true
+		f.global_position = p.global_position + (f.global_position - p.global_position).normalized() * 1.3
+	p.ctrl.guard = false
+	ok(broke, "bloquear sin parar acaba rompiendo la guardia")
+	_run(150)
+	# lesiones visibles
+	p.reset(Vector3(0, 0, 0.65), Vector3(0, 0, -1))
+	f.reset(Vector3(0, 0, -0.65), Vector3(0, 0, 1))
+	for k in 4:
+		p.start_move("cross")
+		_run(40)
+		p.global_position = Vector3(0, 0, 0.65)
+		f.global_position = Vector3(0, 0, -0.65)
+	ok(f.head_dmg > 10.0, "los golpes a la cara suman daño de cabeza (%.1f)" % f.head_dmg)
+	ok(f.rig.face.nose > 0.0, "la nariz sangra tras varios golpes")
+	var marks := 0
+	for d in f.rig._damage_parts.values():
+		marks += (d.marks as Array).size()
+	ok(marks > 0, "quedan marcas de los impactos en la piel")
+	f.reset(Vector3(0, 0, -1), Vector3(0, 0, 1))
+	ok(f.rig.face.nose == 0.0 and f.head_dmg == 0.0, "la revancha empieza sin heridas")
+	_run(30)

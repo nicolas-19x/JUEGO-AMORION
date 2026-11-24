@@ -17,6 +17,8 @@ signal knocked_out(who: Fighter)
 signal footstep(who: Fighter, strength: float)
 signal whoosh(who: Fighter, kind: int)
 signal wall_impact(who: Fighter, point: Vector3, strength: float)
+signal evaded_attack(who: Fighter, attacker: Fighter)
+signal guard_crushed(who: Fighter)
 
 const PARRY_WINDOW := 0.16
 const BUFFER_TIME := 0.3
@@ -59,6 +61,19 @@ var time := 0.0
 var vel := Vector3.ZERO
 var yaw := 0.0
 var sync_target: Fighter = null
+
+# equilibrio (postura): bloquear y encajar lo llena; lleno = guardia rota
+var posture := 0.0
+var posture_idle := 0.0
+# ventana de contraataque tras esquivar en el último momento
+var counter_t := 0.0
+var evaded := false
+var was_counter := false
+# lesiones
+var head_dmg := 0.0
+var body_dmg := 0.0
+var bleed := 0.0
+var _face_t := 0.0
 
 # planificador de pasos
 var feet := []
@@ -110,6 +125,12 @@ func reset(pos: Vector3, face_to: Vector3) -> void:
 	vel = Vector3.ZERO
 	freeze = 0.0
 	combo_taken = 0
+	posture = 0.0
+	counter_t = 0.0
+	head_dmg = 0.0
+	body_dmg = 0.0
+	bleed = 0.0
+	evaded = false
 	queued = ""
 	buffer = ""
 	feet = []
@@ -121,6 +142,7 @@ func reset(pos: Vector3, face_to: Vector3) -> void:
 	last_out = FighterMoves.stance()
 	inert_off.clear()
 	rig.reset_chains()
+	rig.clear_damage()
 	_update_rig(0.016)
 
 
@@ -131,6 +153,15 @@ func reset(pos: Vector3, face_to: Vector3) -> void:
 func step(delta: float) -> void:
 	time += delta
 	guard_age += delta
+	counter_t = maxf(0.0, counter_t - delta)
+	posture_idle += delta
+	if posture_idle > 1.1 and state != "ko":
+		posture = maxf(0.0, posture - delta * (12.0 if state == "block" else 20.0))
+	bleed = maxf(0.0, bleed - delta * 0.04)
+	_face_t -= delta
+	if _face_t <= 0.0:
+		_face_t = 0.5
+		rig.update_face(clampf(1.0 - hp / max_hp, 0.0, 1.0) * 0.8 + 0.1)
 	_read_input(delta)
 	if freeze > 0.0:
 		freeze -= delta
@@ -220,7 +251,7 @@ func _try_start_buffered() -> bool:
 	match b:
 		"light":
 			buffer = ""
-			start_move("jab")
+			start_move(_pick_light())
 			return true
 		"heavy":
 			buffer = ""
@@ -239,6 +270,30 @@ func _try_start_buffered() -> bool:
 			start_dodge(d)
 			return true
 	return false
+
+
+## El mismo botón elige el golpe según la situación.
+func _pick_light() -> String:
+	if counter_t > 0.0:
+		counter_t = 0.0
+		was_counter = true
+		return "uppercut"
+	was_counter = false
+	if opponent:
+		var away := global_position - opponent.global_position
+		away.y = 0
+		var mv: Vector3 = ctrl.move
+		mv.y = 0
+		if mv.length() > 0.6 and away.length() > 0.01 and mv.normalized().dot(away.normalized()) > 0.6 and _dist() < 1.6:
+			return "shove"
+		if _dist() < 0.95:
+			return "hook"
+	return "jab"
+
+
+func add_posture(v: float) -> void:
+	posture = clampf(posture + v, 0.0, 100.0)
+	posture_idle = 0.0
 
 
 func _face_opponent(delta: float, rate: float) -> void:
@@ -294,7 +349,8 @@ func start_dodge(dir_world: Vector3) -> void:
 	if v.length() < 0.2:
 		v = Vector2(0, -1)  # paso atrás
 	root_dir = v.normalized()
-	root_k = 1.0 if root_dir.y > -0.5 else 0.85
+	# esquiva lateral o hacia delante = desplazamiento corto de cintura (slip)
+	root_k = 0.45 if root_dir.y > -0.5 else 0.85
 	vel = Vector3.ZERO
 
 
@@ -316,6 +372,7 @@ func start_reaction(rn: String, from: Fighter, side: float, amp: float, push := 
 
 
 func _begin(m: Dictionary, st: String, blend: float) -> void:
+	evaded = false
 	move = m
 	move_t = 0.0
 	move_amp = 1.0
@@ -362,6 +419,8 @@ func _action_update(delta: float) -> void:
 	if state == "attack" and m.has("sync") and opponent and opponent.sync_target == self and move_t < float(m.hit.to):
 		var want := global_position - global_transform.basis.z * float(m.sync)
 		opponent.global_position = opponent.global_position.lerp(want, minf(1.0, delta * 9.0))
+		if global_position.distance_to(opponent.global_position) < float(m.sync) * 0.92:
+			opponent.global_position = want
 		opponent._face_opponent(delta, 20.0)
 
 	# desplazamiento raíz
@@ -460,6 +519,7 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 	# parada: pulsar defensa justo antes del contacto
 	if not unblockable and victim.can_act() and victim.guard_age < PARRY_WINDOW and facing:
 		info.result = "parry"
+		add_posture(25.0)
 		start_reaction("parried", victim, 1.0, 1.0)
 		victim._begin(victim._moves["parry_deflect"], "dodge", 0.03)
 		victim.guard_age = 9.0
@@ -467,25 +527,28 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 		return info
 	# bloqueo
 	if not unblockable and (victim.state == "block" or (victim.state == "react" and victim.move.get("guard", false))) and facing:
-		if h.get("guard_break", false):
+		victim.add_posture(float(h.dmg) * 2.6 + 6.0 * float(h.level))
+		if h.get("guard_break", false) or victim.posture >= 100.0:
 			info.result = "guard_break"
+			victim.posture = 40.0
+			victim.guard_crushed.emit(victim)
 			victim.start_reaction("guard_break", self, 1.0, 1.0, 1.0)
 			_hitstop(0.1, -to_att, victim)
 		else:
 			info.result = "block"
 			victim.start_reaction("blockstun", self, 1.0, 1.0, float(h.push))
-			victim.hp -= float(h.dmg) * 0.0
 			_hitstop(0.045 + 0.01 * float(h.level), -to_att, victim)
 		victim._kick_springs(Vector3(6, 0, 0), Vector3(4, 0, 0), Vector3(0, 0, 0.03))
 		return info
 
 	# impacto
-	var counter := victim.state == "attack"
+	var counter: bool = victim.state == "attack" or (move.name == "uppercut" and was_counter)
 	var scaling := maxf(0.55, 1.0 - victim.combo_taken * 0.12)
 	var dmg := float(h.dmg) * scaling * (1.25 if counter else 1.0)
 	if move.name == "push_kick":
 		dmg += 7.0 * clampf(charge_t / float(move.charge_max), 0.0, 1.0)
 	victim.hp = maxf(0.0, victim.hp - dmg)
+	victim.add_posture(float(h.get("posture", dmg * 0.35)))
 	victim.combo_taken += 1
 	victim.last_hit_t = victim.time
 	info.counter = counter
@@ -505,14 +568,23 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 	var push := float(h.push) * (1.0 + 0.6 * clampf(charge_t / 0.6, 0.0, 1.0))
 
 	var reaction := "hit_head" if height > 1.28 else "hit_body"
-	if h.get("react", "") == "launch":
-		reaction = "launch"
+	var forced: String = h.get("react", "")
+	if forced != "":
+		reaction = forced
+	elif victim.posture >= 100.0:
+		# empujones acumulados: pierde el equilibrio
+		reaction = "stagger"
+		victim.posture = 50.0
 	elif level >= 3 or (victim.combo_taken >= 3 and level >= 2):
 		reaction = "stagger"
 	if victim.hp <= 0.0:
 		reaction = "ko"
 		push = maxf(push, 1.1)
 	info.reaction = reaction
+	info.region = "head" if height > 1.28 else "body"
+	info.side = side
+	if not h.get("clean", false):
+		victim._take_injury(point, dmg, level, side, info.region == "head", counter)
 	victim.start_reaction(reaction, self, side, amp, push)
 	victim.rig.flash(0.35 + 0.1 * level)
 
@@ -530,6 +602,32 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 	if reaction == "ko":
 		victim.knocked_out.emit(victim)
 	return info
+
+
+## Lesiones visibles según zona, fuerza y lado del golpe.
+func _take_injury(point: Vector3, dmg: float, level: int, side: float, head: bool, counter: bool) -> void:
+	var struck := -signf(side) if absf(side) > 0.05 else 1.0  # lado de la cara que recibe
+	if head:
+		head_dmg += dmg
+		rig.add_mark(point, 0.28 + 0.2 * level)
+		var f := rig.face
+		if head_dmg > 9.0 and (absf(side) < 0.7 or level >= 2):
+			f.nose = minf(1.0, f.nose + 0.18 * level)
+			bleed = minf(1.0, bleed + 0.2 * level)
+		if level >= 2 and head_dmg > 20.0:
+			f.lip = minf(1.0, f.lip + 0.3)
+		if level >= 3 and (head_dmg > 22.0 or counter):
+			if f.cut < 0.05:
+				f.cut_side = struck
+			f.cut = minf(1.0, f.cut + 0.45)
+			bleed = minf(1.0, bleed + 0.4)
+		var sk := "swell_l" if struck < 0.0 else "swell_r"
+		if head_dmg > 16.0:
+			f[sk] = minf(1.0, float(f[sk]) + dmg / 38.0)
+	else:
+		body_dmg += dmg
+		rig.add_mark(point, 0.32 + 0.22 * level)
+	rig.update_face(clampf(1.0 - hp / max_hp, 0.0, 1.0) * 0.8 + 0.1)
 
 
 func _hitstop(t: float, dir_to_victim: Vector3, victim: Fighter) -> void:
@@ -672,6 +770,16 @@ func _update_rig(delta: float) -> void:
 	out.chest_rot = (out.chest_rot as Vector3) + spr_chest + Vector3(breath, 0, 0)
 	out.head_rot = (out.head_rot as Vector3) + spr_head
 	out.hips_pos = (out.hips_pos as Vector3) + spr_hips
+	if state == "dodge" and move.get("name", "") == "dodge" and root_dir.y > -0.5:
+		# slip: la cintura se dobla hacia el lado, la cabeza sale de la línea del golpe
+		var u := clampf(move_t / 0.3, 0.0, 1.0)
+		var k := sin(u * PI)
+		out.spine_rot = (out.spine_rot as Vector3) + Vector3(-10, 0, root_dir.x * 20.0) * k
+		out.chest_rot = (out.chest_rot as Vector3) + Vector3(-6, 0, root_dir.x * 12.0) * k
+		out.hips_pos = (out.hips_pos as Vector3) + Vector3(root_dir.x * 0.06, -0.07, 0) * k
+	# cuerpo castigado: más encorvado
+	var hunch := clampf(body_dmg / 45.0, 0.0, 1.0)
+	out.spine_rot = (out.spine_rot as Vector3) + Vector3(-7, 0, 0) * hunch
 	# rebote de los pasos y peso sobre el pie apoyado
 	for i in 2:
 		if feet[i].stepping:
