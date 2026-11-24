@@ -122,7 +122,7 @@ static func all() -> Dictionary:
 		"hit": {"from": 0.12, "to": 0.19, "limb": "hand_r", "r": 0.13, "dmg": 7.0, "level": 2, "push": 1.1},
 	}
 	m["roundhouse"] = {
-		"dur": 0.74, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.12,
+		"dur": 0.74, "kind": "attack", "cancel": 0.4, "chain": "", "track": 0.12,
 		"reach": 0.84, "lunge": 0.4, "whoosh": [0.15, 2],
 		"kf": [
 			{"t": 0.0},
@@ -147,7 +147,7 @@ static func all() -> Dictionary:
 	}
 	m["push_kick"] = {
 		"dur": 0.82, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.14,
-		"reach": 0.98, "lunge": 0.55, "charge_at": 0.14, "charge_max": 0.6, "whoosh": [0.18, 2],
+		"reach": 0.98, "lunge": 0.55, "ender": true, "charge_at": 0.14, "charge_max": 0.6, "whoosh": [0.18, 2],
 		"kf": [
 			{"t": 0.0},
 			{"t": 0.14, "e": "io", "hips_pos": Vector3(0, -0.05, 0.08), "hips_rot": Vector3(6, -6, 0),
@@ -171,7 +171,7 @@ static func all() -> Dictionary:
 			"react": "launch", "guard_break": true},
 	}
 	m["clinch_knee"] = {
-		"dur": 1.05, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.1, "sync": 0.62,
+		"dur": 1.05, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.1, "sync": 0.62, "ender": true,
 		"reach": 0.62, "lunge": 0.8, "whoosh": [0.36, 1],
 		"kf": [
 			{"t": 0.0},
@@ -200,7 +200,7 @@ static func all() -> Dictionary:
 	# gancho corto: sale solo cuando el rival está pegado (golpe por contexto)
 	m["hook"] = {
 		"dur": 0.46, "kind": "attack", "cancel": 0.2, "chain": "cross", "track": 0.08,
-		"reach": 0.6, "lunge": 0.25, "whoosh": [0.09, 1],
+		"reach": 0.6, "lunge": 0.5, "whoosh": [0.09, 1],
 		"kf": [
 			{"t": 0.0},
 			{"t": 0.07, "e": "io", "hips_pos": Vector3(0, -0.12, 0.01), "hips_rot": Vector3(0, -36, 0),
@@ -215,11 +215,11 @@ static func all() -> Dictionary:
 			{"t": 0.46},
 		],
 		"root": [[0.0, 0.0], [0.14, 0.1], [0.3, 0.12]],
-		"hit": {"from": 0.11, "to": 0.18, "limb": "hand_l", "r": 0.13, "dmg": 8.0, "level": 2, "push": 1.0},
+		"hit": {"from": 0.1, "to": 0.19, "limb": "hand_l", "r": 0.15, "dmg": 8.0, "level": 2, "push": 0.9},
 	}
 	# empujón: sin apenas daño, rompe el equilibrio y manda contra la pared
 	m["shove"] = {
-		"dur": 0.56, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.06,
+		"dur": 0.56, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.06, "ender": true,
 		"reach": 0.55, "lunge": 0.4, "whoosh": [0.12, 0],
 		"kf": [
 			{"t": 0.0},
@@ -241,7 +241,7 @@ static func all() -> Dictionary:
 	}
 	# uppercut de contraataque: solo tras esquivar un golpe en el último momento
 	m["uppercut"] = {
-		"dur": 0.62, "kind": "attack", "cancel": 99.0, "chain": "", "track": 0.09,
+		"dur": 0.62, "kind": "attack", "cancel": 0.34, "chain": "", "track": 0.09,
 		"reach": 0.62, "lunge": 0.5, "whoosh": [0.12, 1],
 		"kf": [
 			{"t": 0.0},
@@ -260,6 +260,115 @@ static func all() -> Dictionary:
 		"root": [[0.0, 0.0], [0.19, 0.2], [0.35, 0.24]],
 		"hit": {"from": 0.15, "to": 0.24, "limb": "hand_r", "r": 0.14, "dmg": 13.0, "level": 3, "push": 1.4,
 			"react": "launch", "unblockable": true},
+	}
+	# gancho al cuerpo con la mano trasera
+	m["body_hook"] = {
+		"dur": 0.46, "kind": "attack", "cancel": 0.22, "track": 0.08,
+		"reach": 0.62, "lunge": 0.5, "whoosh": [0.09, 1],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.07, "e": "io", "hips_pos": Vector3(0, -0.17, 0.0), "hips_rot": Vector3(0, -30, 0),
+				"chest_rot": Vector3(-10, -10, 0), "hand_r": Vector3(0.25, 1.24, -0.04), "elbow_r": Vector3(1, -0.3, 0.4),
+				"hand_l": Vector3(-0.05, 1.56, -0.24)},
+			{"t": 0.14, "e": "in", "hips_pos": Vector3(0, -0.21, -0.06), "hips_rot": Vector3(0, 14, 0),
+				"spine_rot": Vector3(-12, 0, 0), "chest_rot": Vector3(-10, 26, 0), "head_rot": Vector3(-10, -14, 0),
+				"hand_r": Vector3(-0.02, 1.17, -0.45), "elbow_r": Vector3(1, 0.1, 0.3), "hand_l": Vector3(-0.08, 1.56, -0.18)},
+			{"t": 0.19, "e": "out", "hips_pos": Vector3(0, -0.21, -0.06), "hips_rot": Vector3(0, 18, 0),
+				"spine_rot": Vector3(-12, 0, 0), "chest_rot": Vector3(-10, 30, 0),
+				"hand_r": Vector3(-0.08, 1.18, -0.38), "elbow_r": Vector3(1, 0.1, 0.3), "hand_l": Vector3(-0.08, 1.56, -0.18)},
+			{"t": 0.34, "e": "io", "hand_r": Vector3(0.14, 1.5, -0.18), "chest_rot": Vector3(-4, 0, 0)},
+			{"t": 0.46},
+		],
+		"root": [[0.0, 0.0], [0.14, 0.14], [0.3, 0.16]],
+		"hit": {"from": 0.11, "to": 0.18, "limb": "hand_r", "r": 0.14, "dmg": 7.0, "level": 2, "push": 0.7},
+	}
+	# patada baja al muslo: rápida, dobla la pierna del rival
+	m["low_kick"] = {
+		"dur": 0.5, "kind": "attack", "cancel": 0.28, "track": 0.07,
+		"reach": 0.72, "lunge": 0.4, "whoosh": [0.1, 1],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.08, "e": "io", "hips_pos": Vector3(0, -0.08, 0.03), "hips_rot": Vector3(0, -32, 0),
+				"foot_r": Vector3(0.22, 0.24, 0.14), "fw_r": Vector3(1, 0.3, 0), "knee_r": Vector3(0.8, 0.2, -1),
+				"hand_r": Vector3(0.24, 1.38, -0.06), "hand_l": Vector3(-0.04, 1.58, -0.26)},
+			{"t": 0.16, "e": "in", "hips_pos": Vector3(0, -0.1, -0.03), "hips_rot": Vector3(0, 52, 8),
+				"chest_rot": Vector3(0, 10, 4), "head_rot": Vector3(-6, -34, -6),
+				"foot_r": Vector3(-0.12, 0.46, -0.68), "fw_r": Vector3(1, 1, 0), "knee_r": Vector3(1, 0.3, -0.2),
+				"hand_r": Vector3(0.42, 1.22, 0.25), "hand_l": Vector3(-0.06, 1.58, -0.22)},
+			{"t": 0.22, "e": "out", "hips_pos": Vector3(0, -0.1, -0.02), "hips_rot": Vector3(0, 68, 8),
+				"foot_r": Vector3(-0.34, 0.4, -0.45), "fw_r": Vector3(1, 1, 0), "knee_r": Vector3(1, 0.3, 0.0),
+				"hand_r": Vector3(0.4, 1.25, 0.2)},
+			{"t": 0.36, "e": "io", "foot_r": Vector3(0.12, 0.24, 0.06), "fw_r": Vector3(0.6, 0.2, 0),
+				"hips_rot": Vector3(0, -10, 0)},
+			{"t": 0.5},
+		],
+		"root": [[0.0, 0.0], [0.16, 0.14], [0.3, 0.16]],
+		"hit": {"from": 0.12, "to": 0.2, "limb": "foot_r", "r": 0.19, "dmg": 6.0, "level": 2, "push": 0.6,
+			"react": "hit_leg", "region": "legs"},
+	}
+	# rodillazo al cuerpo a corta distancia
+	m["knee"] = {
+		"dur": 0.5, "kind": "attack", "cancel": 0.26, "track": 0.07,
+		"reach": 0.5, "lunge": 0.3, "whoosh": [0.09, 1],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.07, "e": "io", "hand_l": Vector3(-0.1, 1.5, -0.4), "hand_r": Vector3(0.1, 1.5, -0.4),
+				"elbow_l": Vector3(-1, -0.4, 0), "elbow_r": Vector3(1, -0.4, 0), "chest_rot": Vector3(-8, 0, 0),
+				"hips_rot": Vector3(0, -8, 0), "foot_r": Vector3(0.12, 0.28, 0.26), "fw_r": Vector3(1, 0.5, 0)},
+			{"t": 0.15, "e": "in", "hand_l": Vector3(-0.1, 1.32, -0.44), "hand_r": Vector3(0.1, 1.32, -0.44),
+				"elbow_l": Vector3(-1, -0.4, 0), "elbow_r": Vector3(1, -0.4, 0), "chest_rot": Vector3(-18, 0, 0),
+				"hips_rot": Vector3(-8, 10, 0), "hips_pos": Vector3(0, 0.02, -0.1), "head_rot": Vector3(-18, 0, 0),
+				"foot_r": Vector3(0.06, 0.7, -0.24), "fw_r": Vector3(1, 0.7, 0), "knee_r": Vector3(0, 1, -0.6)},
+			{"t": 0.21, "e": "out", "hand_l": Vector3(-0.1, 1.35, -0.42), "hand_r": Vector3(0.1, 1.35, -0.42),
+				"chest_rot": Vector3(-16, 0, 0), "hips_rot": Vector3(-6, 8, 0), "hips_pos": Vector3(0, 0.0, -0.08),
+				"foot_r": Vector3(0.06, 0.64, -0.24), "fw_r": Vector3(1, 0.7, 0), "knee_r": Vector3(0, 1, -0.6)},
+			{"t": 0.36, "e": "io", "foot_r": Vector3(0.14, 0.2, 0.12), "fw_r": Vector3(0.5, 0, 0)},
+			{"t": 0.5},
+		],
+		"root": [[0.0, 0.0], [0.15, 0.12], [0.3, 0.14]],
+		"hit": {"from": 0.11, "to": 0.2, "limb": "knee_r", "r": 0.17, "dmg": 9.0, "level": 2, "push": 0.8},
+	}
+	# patada giratoria hacia atrás: el remate de una serie larga
+	m["spin_kick"] = {
+		"dur": 0.82, "kind": "attack", "cancel": 99.0, "track": 0.06, "ender": true,
+		"reach": 1.0, "lunge": 0.6, "whoosh": [0.24, 2],
+		"spin": [[0.0, 0.0], [0.1, -25.0], [0.27, -185.0], [0.42, -200.0], [0.7, -360.0]],
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.1, "e": "io", "hips_pos": Vector3(0, -0.13, 0.0), "chest_rot": Vector3(-6, -18, 0),
+				"head_rot": Vector3(-6, 25, 0), "hand_l": Vector3(-0.08, 1.55, -0.26), "hand_r": Vector3(0.14, 1.52, -0.12)},
+			{"t": 0.24, "e": "io", "hips_pos": Vector3(0, -0.1, 0.0), "spine_rot": Vector3(-14, 0, 0),
+				"head_rot": Vector3(0, 150, 0), "foot_r": Vector3(0.05, 0.62, -0.1), "fw_r": Vector3(1, 0.2, 0),
+				"knee_r": Vector3(0, 0.5, -1), "hand_l": Vector3(-0.15, 1.5, -0.25), "hand_r": Vector3(0.2, 1.45, -0.1)},
+			{"t": 0.32, "e": "in", "hips_pos": Vector3(0, -0.04, -0.12), "spine_rot": Vector3(-28, 0, 0),
+				"chest_rot": Vector3(-10, 0, 0), "head_rot": Vector3(8, 160, 0),
+				"foot_r": Vector3(0.0, 1.05, 0.92), "fw_r": Vector3(1, 0.0, 0), "knee_r": Vector3(0, -1, 0.2),
+				"hand_l": Vector3(-0.3, 1.2, -0.35), "hand_r": Vector3(0.3, 1.25, -0.3)},
+			{"t": 0.42, "e": "out", "hips_pos": Vector3(0, -0.05, -0.1), "spine_rot": Vector3(-24, 0, 0),
+				"head_rot": Vector3(8, 150, 0), "foot_r": Vector3(0.0, 1.0, 0.86), "fw_r": Vector3(1, 0.0, 0),
+				"knee_r": Vector3(0, -1, 0.2), "hand_l": Vector3(-0.3, 1.2, -0.35), "hand_r": Vector3(0.3, 1.25, -0.3)},
+			{"t": 0.62, "e": "io", "foot_r": Vector3(0.12, 0.3, 0.1), "fw_r": Vector3(0.7, 0, 0), "spine_rot": Vector3(-6, 0, 0)},
+			{"t": 0.82},
+		],
+		"root": [[0.0, 0.0], [0.32, 0.36], [0.5, 0.42]],
+		"hit": {"from": 0.27, "to": 0.37, "limb": "foot_r", "r": 0.21, "dmg": 14.0, "level": 3, "push": 1.7,
+			"react": "launch"},
+	}
+	# reacción: la pierna adelantada cede tras la patada baja
+	m["hit_leg"] = {
+		"dur": 0.5, "kind": "react",
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.05, "e": "out", "hips_pos": Vector3(0, -0.24, 0.04), "hips_rot": Vector3(0, -32, -10),
+				"spine_rot": Vector3(-12, 0, 8), "chest_rot": Vector3(-6, -6, 6), "head_rot": Vector3(-10, 10, 8),
+				"foot_l": Vector3(-0.04, 0.14, -0.04), "fw_l": Vector3(0.8, 0.2, 0), "knee_l": Vector3(0.3, -0.2, -1),
+				"hand_l": Vector3(-0.2, 1.35, -0.24), "hand_r": Vector3(0.2, 1.38, -0.12)},
+			{"t": 0.22, "e": "io", "hips_pos": Vector3(0, -0.19, 0.02), "hips_rot": Vector3(0, -26, -5),
+				"spine_rot": Vector3(-8, 0, 4), "foot_l": Vector3(-0.1, 0.1, -0.12), "fw_l": Vector3(0.4, 0, 0),
+				"hand_l": Vector3(-0.1, 1.45, -0.28), "hand_r": Vector3(0.16, 1.45, -0.14)},
+			{"t": 0.5},
+		],
+		"root": [[0.0, 0.0], [0.1, -0.07]],
 	}
 	m["dodge"] = {
 		"dur": 0.38, "kind": "dodge", "iframes": [0.02, 0.24],
@@ -299,6 +408,35 @@ static func all() -> Dictionary:
 			{"t": 0.4},
 		],
 		"root": [[0.0, 0.0], [0.07, -0.13], [0.25, -0.18]],
+	}
+	# variante pesada: la cabeza gira con el tronco y el cuerpo da medio paso
+	m["hit_head_b"] = {
+		"dur": 0.5, "kind": "react",
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.05, "e": "out", "head_rot": Vector3(10, -48, -20), "chest_rot": Vector3(6, -30, -10),
+				"spine_rot": Vector3(4, -10, -7), "hips_rot": Vector3(0, -34, -4), "hips_pos": Vector3(0.05, -0.12, 0.06),
+				"hand_l": Vector3(-0.3, 1.38, -0.18), "hand_r": Vector3(0.36, 1.3, 0.02),
+				"foot_r": Vector3(0.22, 0.08, 0.32), "fw_r": Vector3(0.6, 0, 0)},
+			{"t": 0.2, "e": "io", "head_rot": Vector3(4, -20, -8), "chest_rot": Vector3(3, -14, -4),
+				"hips_pos": Vector3(0.03, -0.13, 0.04), "hand_l": Vector3(-0.15, 1.45, -0.26), "hand_r": Vector3(0.22, 1.42, -0.08)},
+			{"t": 0.5},
+		],
+		"root": [[0.0, 0.0], [0.08, -0.16], [0.3, -0.22]],
+	}
+	# variante al hígado: se dobla hacia el lado golpeado y se protege las costillas
+	m["hit_body_b"] = {
+		"dur": 0.55, "kind": "react",
+		"kf": [
+			{"t": 0.0},
+			{"t": 0.06, "e": "out", "spine_rot": Vector3(-18, -10, -16), "chest_rot": Vector3(-14, -14, -10),
+				"head_rot": Vector3(6, -14, -10), "hips_pos": Vector3(0.06, -0.22, 0.08), "hips_rot": Vector3(0, -26, 8),
+				"hand_l": Vector3(-0.14, 1.3, -0.28), "hand_r": Vector3(0.2, 1.06, -0.12), "elbow_r": Vector3(1, -0.3, 0.3)},
+			{"t": 0.25, "e": "io", "spine_rot": Vector3(-14, -6, -10), "chest_rot": Vector3(-10, -8, -6),
+				"hips_pos": Vector3(0.04, -0.2, 0.05), "hand_l": Vector3(-0.1, 1.4, -0.28), "hand_r": Vector3(0.18, 1.12, -0.14)},
+			{"t": 0.55},
+		],
+		"root": [[0.0, 0.0], [0.08, -0.12], [0.3, -0.16]],
 	}
 	m["hit_body"] = {
 		"dur": 0.46, "kind": "react",
@@ -520,7 +658,10 @@ static func sample(move: Dictionary, t: float, base: Dictionary, amp := 1.0) -> 
 
 
 static func root_at(move: Dictionary, t: float) -> float:
-	var r: Array = move.root
+	return curve_at(move.root, t)
+
+
+static func curve_at(r: Array, t: float) -> float:
 	if r.is_empty():
 		return 0.0
 	if t <= float(r[0][0]):

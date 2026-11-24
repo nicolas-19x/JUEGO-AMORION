@@ -1,6 +1,48 @@
 # Estado del prototipo
 
-Versión 0.2.0 · 24 de noviembre de 2026
+Versión 0.3.0 · 24 de noviembre de 2026
+
+## Novedades de la 0.3.0
+
+**Golpear se siente mejor (prioridad absoluta):**
+- Cuatro botones: GOLPE, PATADA, DEFENSA y ESQUIVA (toque propio). Teclado
+  equivalente.
+- Series largas: los puños encadenan en bucle (jab, directo, gancho, gancho al
+  cuerpo). Si el golpe conecta, el siguiente sale justo después del contacto:
+  machacar el botón es fluido. La PATADA remata la serie (circular; desde el 4.º
+  golpe, patada giratoria que derriba con giro completo del cuerpo).
+- Golpes nuevos: gancho al cuerpo, patada baja (dobla la pierna y deja cojera),
+  rodillazo corto y patada giratoria. Contraataque tras esquiva con puño
+  (uppercut) o patada (giratoria).
+- El atacante nunca recula para "encajar" la distancia dentro de una serie: si
+  está más cerca, el golpe conecta antes (antes esto hacía fallar el gancho).
+- El rival se libera solo: cada golpe seguido acorta su aturdimiento y al
+  noveno sale despedido.
+
+**Reacciones:** sin el destello blanco al recibir. Variantes que nunca se
+repiten dos veces seguidas (giro de cabeza con medio paso, doblarse hacia el
+hígado con la mano en las costillas, pierna que cede), elegidas por la
+dirección y la fuerza reales del golpe.
+
+**Colisiones:** nadie sale del patio ni atraviesa paredes o la jardinera, ni de
+pie ni tumbado (la cabeza y los pies del cuerpo caído también se comprueban). El
+agarre del remate retrocede al atacante si la víctima no cabe. Un agarre fallido
+ya no deja a la víctima atrapada. Las patadas bajas ahora tienen dónde golpear
+(zona de impacto desde las rodillas).
+
+**Sangre:** chorros de regueros alargados y gotas, escupir sangre en golpes
+fuertes a la cara (y al cuerpo muy castigado), cara que se va cubriendo de
+sangre, goteo que mancha pecho y camiseta, salpicaduras sobre el cuerpo y las
+vendas de quien golpea, charco que crece bajo quien yace sangrando, gran mancha
+con regueros que bajan por la pared al estamparse, hasta 90 manchas en el
+escenario. Sigue sin gore: nada de miembros ni huesos.
+
+**Verificado:** ~2000 comprobaciones, 0 fallos, con pruebas nuevas de series
+largas (≥6 golpes seguidos, mezcla de golpes, liberación al noveno), patada
+como remate, patada baja, y derribos y KO junto a paredes y jardinera sin
+atravesarlas. Capturas revisadas. **Sin probar en teléfono**: el rendimiento
+con mucha sangre en pantalla está por medir.
+
 
 ## Novedades de la 0.2.0 (segundo prototipo)
 

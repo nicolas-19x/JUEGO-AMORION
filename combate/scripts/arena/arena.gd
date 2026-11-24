@@ -5,6 +5,8 @@ extends Node3D
 ## reaccionan a los cuerpos y una ciudad lejana que se funde en la niebla.
 
 const HALF := 4.6
+const TREE := Vector3(-3.55, 0, 3.55)
+const PLANTER_HALF := 0.65
 
 var sun: DirectionalLight3D
 var env: Environment
@@ -19,9 +21,26 @@ func build() -> void:
 	_walls()
 	_facade()
 	_corners()
-	_tree(Vector3(-3.55, 0, 3.55))
+	_tree(TREE)
 	_props()
 	_skyline()
+
+
+## Mantiene un punto (con radio r) dentro del patio y fuera de la jardinera.
+## Se aplica a todo lo que se coloca a mano (separación, agarre, cuerpo tumbado).
+static func constrain(p: Vector3, r: float) -> Vector3:
+	var lim := HALF - r
+	p.x = clampf(p.x, -lim, lim)
+	p.z = clampf(p.z, -lim, lim)
+	var dx := p.x - TREE.x
+	var dz := p.z - TREE.z
+	var e := PLANTER_HALF + r
+	if absf(dx) < e and absf(dz) < e:
+		if e - absf(dx) < e - absf(dz):
+			p.x = TREE.x + signf(dx if dx != 0.0 else 1.0) * e
+		else:
+			p.z = TREE.z + signf(dz if dz != 0.0 else 1.0) * e
+	return p
 
 
 func _mat(c: Color, rough := 0.8, emit := Color.BLACK, emit_e := 0.0) -> StandardMaterial3D:

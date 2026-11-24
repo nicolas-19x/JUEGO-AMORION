@@ -35,7 +35,7 @@ static var blood_mode := 2   # 0 sin sangre, 1 reducida, 2 normal
 var _all_mats: Array[ShaderMaterial] = []
 var _damage_parts := {}      # parte → {mi, mat, marks: Array[Vector4], r}
 var _outline: ShaderMaterial
-var face := {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0}
+var face := {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0, "smear": 0.0}
 var _sweat := 0.0
 
 
@@ -78,11 +78,11 @@ func setup(p: Dictionary) -> void:
 		_add("knot", _sphere(0.042), "hair")
 	for s in ["l", "r"]:
 		_add("upper_" + s, _cyl(0.058, 0.046, UPPER_ARM), "skin")
-		_add("fore_" + s, _cyl(0.047, 0.04, FOREARM - 0.04), "wrap")
-		_add("fist_" + s, _sphere(1.0), "wrap", Vector3(0.042, 0.046, 0.054))
+		_add("fore_" + s, _cyl(0.047, 0.04, FOREARM - 0.04), "wrapc")
+		_add("fist_" + s, _sphere(1.0), "wrapc", Vector3(0.042, 0.046, 0.054))
 		_add("thigh_" + s, _cyl(0.09, 0.066, THIGH), "pants")
 		_add("shin_" + s, _cyl(0.066, 0.052, SHIN), "pants")
-		_add("foot_" + s, _box(Vector3(0.1, 0.075, 0.24)), "shoe")
+		_add("foot_" + s, _box(Vector3(0.1, 0.075, 0.24)), "shoec")
 	# cadenas de tela: faja (dos cintas) y cinta de la cabeza
 	_chains.append(_make_chain("sash_a", 4, 0.11, 0.032, "accent"))
 	_chains.append(_make_chain("sash_b", 3, 0.11, 0.028, "accent"))
@@ -113,6 +113,10 @@ func _material_for(kind: String) -> ShaderMaterial:
 			return m
 		"top":
 			return _mat(palette.top, 0.85, _outline)
+		"wrapc":
+			return _mat(palette.wrap, 0.8, _outline)
+		"shoec":
+			return _mat(palette.shoe, 0.6, _outline)
 		"bruise":
 			var c: Color = (palette.skin as Color).lerp(Color(0.42, 0.18, 0.28), 0.55)
 			var m2 := _mat(c, 0.45, null, 0.2)
@@ -158,11 +162,11 @@ func _add(part: String, mesh: Mesh, mat: String, scl := Vector3.ONE) -> MeshInst
 		mi.position.y = -(mesh as CylinderMesh).height * 0.5
 	holder.add_child(mi)
 	_parts[part] = holder
-	if mat in ["skin", "face", "top"] and not part.begins_with("nose") and not part.begins_with("ear"):
+	if mat in ["skin", "face", "top", "wrapc", "shoec"] and not part.begins_with("nose") and not part.begins_with("ear"):
 		var avg := (scl.x + scl.y + scl.z) / 3.0
 		var r := (0.042 if mat == "face" else 0.065) / avg
 		m.set_shader_parameter("mark_r", r)
-		_damage_parts[part] = {"mi": mi, "mat": m, "marks": [], "r": r}
+		_damage_parts[part] = {"mi": mi, "mat": m, "marks": [], "bloods": [], "r": r}
 		_push_marks(_damage_parts[part])
 	return mi
 
@@ -183,8 +187,8 @@ func _make_chain(id: String, n: int, seg: float, radius: float, mat: String) -> 
 	return {"id": id, "n": n, "seg": seg, "nodes": nodes, "p": [], "prev": [], "anchor": Vector3.ZERO}
 
 
-func flash(amount: float) -> void:
-	_flash = max(_flash, amount)
+func flash(_amount: float) -> void:
+	pass  # sin destello blanco: el impacto se comunica con el cuerpo, no con un parpadeo
 
 
 # ---------------------------------------------------------------------------
@@ -382,19 +386,51 @@ func reset_chains() -> void:
 # ---------------------------------------------------------------------------
 
 func _push_marks(d: Dictionary) -> void:
-	var arr: Array = []
-	for m in d.marks:
-		arr.append(m)
-	while arr.size() < 6:
-		arr.append(Vector4(99, 99, 99, 0))
-	(d.mat as ShaderMaterial).set_shader_parameter("marks", arr)
+	for key in ["marks", "bloods"]:
+		var arr: Array = []
+		for m in d.get(key, []):
+			arr.append(m)
+		while arr.size() < 6:
+			arr.append(Vector4(99, 99, 99, 0))
+		(d.mat as ShaderMaterial).set_shader_parameter(key, arr)
 
 
 ## Deja una marca (moretón en piel, sangre en ropa) en la pieza más cercana al punto.
-func add_mark(world_p: Vector3, amount: float) -> String:
+## Mancha de sangre (no moretón) en la pieza más cercana: goteo y salpicaduras.
+func add_blood(world_p: Vector3, amount: float, max_dist := 0.35) -> void:
+	var best := ""
+	var best_d := max_dist
+	for part in _damage_parts:
+		var mi: MeshInstance3D = _damage_parts[part].mi
+		var dd := mi.global_position.distance_to(world_p)
+		if dd < best_d:
+			best_d = dd
+			best = part
+	if best == "":
+		return
+	var d: Dictionary = _damage_parts[best]
+	var mi2: MeshInstance3D = d.mi
+	var local: Vector3 = mi2.global_transform.affine_inverse() * world_p
+	var arr: Array = d.bloods
+	for i in arr.size():
+		var m: Vector4 = arr[i]
+		if Vector3(m.x, m.y, m.z).distance_to(local) < float(d.r) * 0.5:
+			arr[i] = Vector4(m.x, m.y, m.z, minf(1.0, m.w + amount))
+			_push_marks(d)
+			return
+	if arr.size() >= 6:
+		arr.remove_at(0)
+	arr.append(Vector4(local.x, local.y, local.z, minf(1.0, amount)))
+	_push_marks(d)
+
+
+func add_mark(world_p: Vector3, amount: float, gear_only := false) -> String:
 	var best := ""
 	var best_d := 9.0
 	for part in _damage_parts:
+		var gear: bool = part.begins_with("fist") or part.begins_with("fore") or part.begins_with("foot")
+		if gear != gear_only:
+			continue
 		var mi: MeshInstance3D = _damage_parts[part].mi
 		var dd := mi.global_position.distance_to(world_p)
 		if part == "head":
@@ -438,6 +474,7 @@ func update_face(sweat: float) -> void:
 	fm.set_shader_parameter("lip_blood", face.lip)
 	fm.set_shader_parameter("cut_amount", face.cut)
 	fm.set_shader_parameter("cut_side", face.cut_side)
+	fm.set_shader_parameter("smear", face.smear * (0.5 if blood_mode == 1 else 1.0))
 	for d in _damage_parts.values():
 		(d.mat as ShaderMaterial).set_shader_parameter("blood_on", on)
 		(d.mat as ShaderMaterial).set_shader_parameter("sweat", sweat)
@@ -453,7 +490,8 @@ func update_face(sweat: float) -> void:
 func clear_damage() -> void:
 	for d in _damage_parts.values():
 		(d.marks as Array).clear()
+		(d.bloods as Array).clear()
 		_push_marks(d)
-	face = {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0}
+	face = {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0, "smear": 0.0}
 	if not _damage_parts.is_empty():
 		update_face(0.0)

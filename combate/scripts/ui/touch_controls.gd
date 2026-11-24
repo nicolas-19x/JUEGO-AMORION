@@ -2,14 +2,16 @@ class_name TouchControls
 extends Control
 ## Controles táctiles minimalistas y multitáctiles.
 ##  · Mitad izquierda: joystick flotante (aparece donde se apoya el pulgar).
-##  · Botón grande: golpear (toques encadenan el combo; con el joystick hacia el
-##    rival, patada fuerte; mantener la carga).
-##  · Botón secundario: mantener = guardia; tocar en el momento justo = parada;
-##    tocar con el joystick inclinado = esquiva.
-##  · Botón contextual: solo aparece cuando hay un remate posible.
+##  · GOLPE: puños (machacar encadena la serie). PATADA: patadas (en mitad de una
+##    serie, remata). DEFENSA: mantener = guardia, a tiempo = parada.
+##    ESQUIVA: con dirección esquiva hacia allí; sin dirección, quiebro lateral.
+##  · REMATE: solo aparece cuando hay un remate posible.
 
 signal attack_down
 signal attack_up
+signal kick_down
+signal kick_up
+signal dodge_down
 signal guard_down
 signal guard_up
 signal special_down
@@ -24,7 +26,8 @@ var enabled := true
 var _touches := {}       # índice → rol
 var _stick_origin := Vector2.ZERO
 var _stick_pos := Vector2.ZERO
-var _pressed := {"attack": false, "guard": false, "special": false}
+var _pressed := {"attack": false, "kick": false, "guard": false, "dodge": false, "special": false}
+const ROLES := ["attack", "kick", "guard", "dodge", "special", "pause"]
 var _pulse := 0.0
 var _special_alpha := 0.0
 var _safe := Rect2()
@@ -54,11 +57,15 @@ func _center(role: String) -> Vector2:
 	var br := _safe.end
 	match role:
 		"attack":
-			return br + Vector2(-150, -138)
+			return br + Vector2(-138, -142)
+		"kick":
+			return br + Vector2(-300, -84)
 		"guard":
-			return br + Vector2(-312, -92)
+			return br + Vector2(-112, -306)
+		"dodge":
+			return br + Vector2(-276, -246)
 		"special":
-			return br + Vector2(-196, -300)
+			return br + Vector2(-430, -176)
 		"pause":
 			return Vector2(_safe.end.x - 52, _safe.position.y + 46)
 	return Vector2.ZERO
@@ -67,11 +74,15 @@ func _center(role: String) -> Vector2:
 func _radius(role: String) -> float:
 	match role:
 		"attack":
-			return 76.0
+			return 72.0
+		"kick":
+			return 62.0
 		"guard":
-			return 56.0
+			return 50.0
+		"dodge":
+			return 47.0
 		"special":
-			return 52.0
+			return 50.0
 		"pause":
 			return 26.0
 	return 0.0
@@ -79,11 +90,18 @@ func _radius(role: String) -> float:
 
 func _hit_role(p: Vector2) -> String:
 	# zonas táctiles algo más grandes que el dibujo, para dedos reales
-	for role in ["attack", "guard", "special", "pause"]:
+	# el botón más cercano gana (zonas generosas pero sin solaparse)
+	var best := ""
+	var best_d := 1e9
+	for role in ROLES:
 		if role == "special" and not special_visible:
 			continue
-		if p.distance_to(_center(role)) <= _radius(role) * 1.3 + 10.0:
-			return role
+		var d := p.distance_to(_center(role))
+		if d <= _radius(role) * 1.25 + 8.0 and d / _radius(role) < best_d:
+			best_d = d / _radius(role)
+			best = role
+	if best != "":
+		return best
 	if p.x < _safe.position.x + _safe.size.x * 0.5:
 		return "stick"
 	return ""
@@ -107,6 +125,12 @@ func _input(event: InputEvent) -> void:
 				"attack":
 					_pressed.attack = true
 					attack_down.emit()
+				"kick":
+					_pressed.kick = true
+					kick_down.emit()
+				"dodge":
+					_pressed.dodge = true
+					dodge_down.emit()
 				"guard":
 					_pressed.guard = true
 					guard_down.emit()
@@ -125,6 +149,11 @@ func _input(event: InputEvent) -> void:
 				"attack":
 					_pressed.attack = false
 					attack_up.emit()
+				"kick":
+					_pressed.kick = false
+					kick_up.emit()
+				"dodge":
+					_pressed.dodge = false
 				"guard":
 					_pressed.guard = false
 					guard_up.emit()
@@ -178,7 +207,9 @@ func _draw() -> void:
 		var k := 0.5 + 0.5 * sin(_pulse * 22.0)
 		draw_circle(c, _radius("attack") * (1.15 + 0.08 * k), Color(1.0, 0.82, 0.3, 0.25 + 0.2 * k))
 	_button("attack", "CONTRA" if counter_glow else "GOLPE", Color(1.0, 0.85, 0.3) if counter_glow else Color(1.0, 0.62, 0.35))
+	_button("kick", "PATADA", Color(1.0, 0.45, 0.32))
 	_button("guard", "DEFENSA", Color(0.55, 0.8, 0.95))
+	_button("dodge", "ESQUIVA", Color(0.6, 0.95, 0.7))
 	if _special_alpha > 0.01:
 		_button("special", "REMATE", Color(1.0, 0.85, 0.4), _special_alpha)
 	var pc := _center("pause")
@@ -207,6 +238,18 @@ func _button(role: String, label: String, accent: Color, alpha := 1.0) -> void:
 				var d := Vector2(cos(ang), sin(ang))
 				draw_line(c + d * rr * 0.12, c + d * rr * 0.48, ic, 5.0, true)
 			draw_circle(c + Vector2(6, 6), rr * 0.17, ic)
+		"kick":
+			# pie estilizado con estela
+			draw_line(c + Vector2(-rr * 0.38, -rr * 0.3), c + Vector2(rr * 0.1, rr * 0.1), ic, 7.0, true)
+			draw_line(c + Vector2(rr * 0.1, rr * 0.1), c + Vector2(rr * 0.42, rr * 0.06), ic, 7.0, true)
+			for k in 3:
+				draw_line(c + Vector2(-rr * 0.42, -rr * 0.05 + k * rr * 0.14), c + Vector2(-rr * 0.2, -rr * 0.05 + k * rr * 0.14), Color(ic.r, ic.g, ic.b, ic.a * 0.6), 3.0, true)
+		"dodge":
+			# flecha curva
+			draw_arc(c + Vector2(0, rr * 0.1), rr * 0.36, PI * 1.1, PI * 1.9, 16, ic, 4.0, true)
+			var tip := c + Vector2(rr * 0.34, -rr * 0.05)
+			draw_line(tip, tip + Vector2(-rr * 0.16, -rr * 0.05), ic, 4.0, true)
+			draw_line(tip, tip + Vector2(-rr * 0.02, rr * 0.16), ic, 4.0, true)
 		"guard":
 			var pts := PackedVector2Array([c + Vector2(0, -rr * 0.42), c + Vector2(rr * 0.34, -rr * 0.28),
 				c + Vector2(rr * 0.28, rr * 0.12), c + Vector2(0, rr * 0.42), c + Vector2(-rr * 0.28, rr * 0.12),

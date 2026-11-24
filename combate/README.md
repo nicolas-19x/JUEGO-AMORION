@@ -10,7 +10,10 @@ está puesto en que cada golpe se sienta bien.
 
 ## Estado
 
-**Versión 0.2.0: segundo prototipo.** Luchadores callejeros con cara, piel y
+**Versión 0.3.0.** Combate rediseñado para que golpear se sienta bien: botones
+separados de puño, patada, defensa y esquiva; series largas fluidas; reacciones
+sin destello blanco; colisiones limpias; sangre mucho más presente.
+Antes, en la 0.2.0: Luchadores callejeros con cara, piel y
 ropa; daño visible por zona (moretones donde cae el golpe, nariz y labio que
 sangran, ceja abierta, ojo hinchado, sangre en la camiseta, el suelo y la pared);
 barra de equilibrio, golpes que dependen de la distancia, empujón y
@@ -30,11 +33,16 @@ GL Compatibility. **Aún no se ha probado en un teléfono** (ver
 | Control | Acción |
 |---|---|
 | Joystick flotante (mitad izquierda) | Moverse; el personaje siempre encara al rival. |
-| **GOLPE** | Según la situación: a media distancia jab → directo → patada circular; pegado al rival, gancho corto; joystick hacia el rival, patada frontal fuerte (mantener = cargar); joystick hacia atrás, empujón (contra la pared lo estampa). |
-| **DEFENSA** | Mantener: guardia (llena la barra de equilibrio; llena = guardia rota). Tocar justo antes del impacto: parada. Con dirección lateral: esquiva de cintura; si un golpe pasa rozando, el botón se vuelve **CONTRA** y sale un uppercut a cámara lenta. Con dirección hacia atrás: paso atrás. |
+| **GOLPE** | Machacar encadena puños en bucle: jab → directo → gancho → gancho al cuerpo → directo… Pegado al rival empieza con gancho; atrás + GOLPE es un empujón; contra un rival tambaleándose sale un uppercut. |
+| **PATADA** | Sola: patada baja al muslo (cerca, rodillazo). En mitad de una serie la remata: patada circular, y a partir del 4.º golpe patada giratoria que derriba. Hacia el rival + PATADA: patada frontal (mantener = cargar). |
+| **DEFENSA** | Mantener: guardia (llena la barra de equilibrio; llena = guardia rota). Tocar justo antes del impacto: parada. |
+| **ESQUIVA** | Con dirección: esquiva hacia allí. Sin dirección: quiebro lateral. Si un golpe te roza, GOLPE se vuelve **CONTRA** (uppercut) y PATADA, patada giratoria. |
 | **REMATE** | Solo aparece si el rival está aturdido: agarre + rodillazo. |
 
-En el menú: **Sangre: Normal / Reducida / Apagada** (se recuerda).
+Las series largas tienen límite natural: cada golpe acorta el aturdimiento del
+rival y al noveno sale despedido. En el menú: **Sangre: Normal / Reducida /
+Apagada**. Teclado: WASD · J golpe · K patada · L defensa · Espacio esquiva ·
+I remate · P pausa.
 
 ## Pruebas y capturas
 

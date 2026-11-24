@@ -16,6 +16,7 @@ uniform vec3 emission_color : source_color = vec3(0.0);
 uniform float hit_flash = 0.0;
 uniform float skin = 0.0;
 uniform vec4 marks[6];
+uniform vec4 bloods[6];
 uniform float mark_r = 0.5;
 uniform float blood_on = 1.0;
 uniform float face_mode = 0.0;
@@ -24,6 +25,7 @@ uniform float lip_blood = 0.0;
 uniform float cut_amount = 0.0;
 uniform float cut_side = 1.0;
 uniform float sweat = 0.0;
+uniform float smear = 0.0;
 
 varying vec3 lp;
 
@@ -83,10 +85,26 @@ void fragment() {
 		float tx = 1.0 - smoothstep(0.03, 0.08, abs(lp.x - cp.x - 0.04 * cut_side + w * 0.7));
 		float ty = step(cp.y - cut_amount * 0.85, lp.y) * step(lp.y, cp.y);
 		float cb = max(line * 1.2, tx * ty * 0.9) * front * step(0.01, cut_amount);
-		float blood = clamp(max(max(nb, cb), max(lip, lip_drip)), 0.0, 1.0) * blood_on;
-		c = mix(c, vec3(0.45, 0.02, 0.03), blood * 0.92);
+		// sangre extendida por la cara: crece con el castigo acumulado
+		float sm_n = noise(lp * 6.5 + vec3(3.0, 1.0, 7.0));
+		float sm = (1.0 - smoothstep(-0.05, 0.08, sm_n - smear * 0.75)) * smoothstep(0.25, -0.35, lp.y)
+			* smoothstep(-0.1, -0.55, lp.z) * step(0.02, smear);
+		float blood = clamp(max(max(max(nb, cb), max(lip, lip_drip)), sm) * 1.25, 0.0, 1.0) * blood_on;
+		c = mix(c, vec3(0.4, 0.0, 0.02), blood * 0.97);
 		wet = max(wet, blood);
 	}
+	// manchas de sangre sobre cualquier pieza (goteo, salpicaduras ajenas)
+	float bl = 0.0;
+	for (int i = 0; i < 6; i++) {
+		vec3 dd = lp - bloods[i].xyz;
+		// los regueros caen: la mancha se alarga hacia abajo
+		dd.y = dd.y > 0.0 ? dd.y * 1.6 : dd.y * 0.45;
+		float n2 = noise(lp * (14.0 / mark_r) + float(i) * 5.3) - 0.5;
+		bl = max(bl, (1.0 - smoothstep(mark_r * 0.15, mark_r * 0.7, length(dd) + n2 * mark_r * 0.5)) * bloods[i].w);
+	}
+	bl = clamp(bl, 0.0, 1.0) * blood_on;
+	c = mix(c, vec3(0.38, 0.0, 0.02), bl * 0.95);
+	wet = max(wet, bl);
 	wet = max(wet, sweat * 0.35);
 	ALBEDO = c;
 	ROUGHNESS = mix(roughness_value, 0.16, wet);

@@ -101,12 +101,22 @@ func _process(_delta: float) -> bool:
 					for k in lvl * 2:
 						fi._take_injury(h + fwd * 0.1 + rt * 0.05 * (1 if k % 2 else -1), 9.0, 2 + (k % 2), 1.0 if k % 2 else -1.0, true, k == 3)
 						fi._take_injury(c + fwd * 0.12 + rt * (0.08 if k % 2 else -0.06) + Vector3.UP * (0.05 * (k % 3)), 9.0, 2, 1.0, false, false)
-					fi.bleed = 0.6
+					fi.bleed = 0.8
+					fi.rig.face.smear = 0.25 * lvl
+					fi.rig.update_face(0.5)
 					fi.hp = 40
 				var fx = main.fx
-				for k in 6:
-					fx.blood(f.rig.points.head + Vector3(0, 0, 0.1), Vector3(0.3, 0.2, 1.0), 1.2)
-				for i in 30:
+				for k in 3:
+					fx.blood(f.rig.points.head + Vector3(0, 0, 0.1), Vector3(0.3, 0.2, 1.0), 2.0)
+				fx.spit(f.rig.points.nose, Vector3(0.4, 0.1, 1.0))
+				var ch: Vector3 = f.rig.points.chest
+				for k in 5:
+					f.rig.add_blood(ch + Vector3.UP * 0.12 + Vector3(0, 0, 0.12) + Vector3(randf_range(-0.07, 0.07), 0, 0), 0.6)
+				for k in 4:
+					p.rig.add_blood(p.rig.points.chest + Vector3(randf_range(-0.1, 0.1), randf_range(-0.05, 0.1), -0.12), 0.6)
+				fx.pool("p", f.global_position + Vector3(0.4, 0, 0.3), 0.8)
+				fx.wall_stain(Vector3(0.8, 1.2, -Arena.HALF + 0.02), Vector3(0, 0, 1), 1.0)
+				for i in 8:
 					fx.process_fx(1.0 / 60.0, main.cam)
 			if frame >= 6:
 				var who = main.foe if args.size() < 4 or args[3] == "foe" else main.player
@@ -133,12 +143,13 @@ func _process(_delta: float) -> bool:
 				var d: float = p.global_position.distance_to(f.global_position)
 				var to: Vector3 = (f.global_position - p.global_position).normalized()
 				p.ctrl.move = to if d > 1.3 else to.cross(Vector3.UP) * 0.4
-				if frame % 22 == 0 and d < 1.8:
+				if frame % 7 == 0 and d < 1.6:
 					main._on_attack_down()
 					main._on_attack_up()
-				if frame % 150 == 75:
-					p.ctrl.heavy = true
-				if frame % 30 == 0:
+				if frame % 41 == 0 and d < 1.6:
+					main._on_kick_down()
+					main._on_kick_up()
+				if frame % 15 == 0:
 					_shot("fight_%04d" % frame)
 				if main.phase == "ko" and frame % 12 == 0:
 					_shot("ko_%04d" % frame)

@@ -33,6 +33,7 @@ var paused := false
 var hitstop_global := 0.0
 var slowmo_t := 0.0
 var _attack_held := false
+var _kick_held := false
 var _guard_held := false
 var _kb_guard := false
 var _menu_root: Control
@@ -166,14 +167,15 @@ func _player_input() -> void:
 	cf = cf.normalized()
 	var cr := cf.cross(Vector3.UP)
 	c.move = (cr * v.x - cf * v.y)
-	var kg := Input.is_physical_key_pressed(KEY_K)
+	var kg := Input.is_physical_key_pressed(KEY_L)
 	if kg and not _kb_guard:
 		_on_guard_down()
 	elif not kg and _kb_guard:
 		_on_guard_up()
 	_kb_guard = kg
 	c.guard = _guard_held or kg
-	c.attack_held = _attack_held or Input.is_physical_key_pressed(KEY_J) or Input.is_physical_key_pressed(KEY_L)
+	# mantener PATADA carga la patada frontal
+	c.attack_held = _kick_held or Input.is_physical_key_pressed(KEY_K)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -183,8 +185,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	match e.physical_keycode:
 		KEY_J:
 			_on_attack_down()
-		KEY_L:
-			player.ctrl.heavy = true
+		KEY_K:
+			_on_kick_down()
+		KEY_SPACE:
+			_on_dodge_down()
 		KEY_I:
 			player.ctrl.special = true
 		KEY_ESCAPE, KEY_P:
@@ -193,15 +197,27 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 func _on_attack_down() -> void:
 	_attack_held = true
+	if phase == "fight":
+		player.ctrl.punch = true
+
+
+func _on_kick_down() -> void:
+	_kick_held = true
+	if phase == "fight":
+		player.ctrl.kick = true
+
+
+func _on_kick_up() -> void:
+	_kick_held = false
+
+
+func _on_dodge_down() -> void:
 	if phase != "fight":
 		return
 	var c := player.ctrl
 	var mv: Vector3 = c.move
-	var to_foe := (foe.global_position - player.global_position).normalized()
-	if mv.length() > 0.75 and mv.normalized().dot(to_foe) > 0.72 and player.state != "attack":
-		c.heavy = true
-	else:
-		c.light = true
+	c.dodge = mv.normalized() if mv.length() > 0.5 else Vector3.ZERO
+	c.dodge_pressed = true
 
 
 func _on_attack_up() -> void:
@@ -210,14 +226,8 @@ func _on_attack_up() -> void:
 
 func _on_guard_down() -> void:
 	_guard_held = true
-	if phase != "fight":
-		return
-	var c := player.ctrl
-	var mv: Vector3 = c.move
-	if mv.length() > 0.5:
-		c.dodge = mv.normalized()
-	else:
-		c.guard_pressed = true
+	if phase == "fight":
+		player.ctrl.guard_pressed = true
 
 
 func _on_guard_up() -> void:
@@ -241,7 +251,8 @@ func _check_hits(a: Fighter, b: Fighter, delta: float) -> void:
 	var p: Vector3 = a.rig.points[limb]
 	var lv: Vector3 = a.limb_vel.get(limb, Vector3.ZERO)
 	var pp := p - lv * delta
-	var q1: Vector3 = b.rig.points.hips
+	# zona de impacto: de las rodillas a la cabeza (las patadas bajas también cuentan)
+	var q1: Vector3 = b.rig.points.hips.lerp(b.global_position, 0.6)
 	var q2: Vector3 = b.rig.points.head
 	var r := Geometry3D.get_closest_points_between_segments(pp, p, q1, q2)
 	var d := (r[0] as Vector3).distance_to(r[1])
@@ -315,12 +326,7 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 			fx.impact(info.point, dir, lvl, "hit")
 			var victim: Fighter = info.victim
 			if info.move != "shove" and FighterRig.blood_mode > 0:
-				var head: bool = info.get("region", "") == "head"
-				var amount := (lvl - 1) * 0.5 + (0.6 if head else 0.2) + victim.bleed * 0.6
-				if FighterRig.blood_mode == 1:
-					amount *= 0.4
-				if amount > 0.35:
-					fx.blood(info.point, dir + Vector3.UP * 0.25, amount)
+				_blood_for_hit(info, dir, lvl)
 			if info.move == "uppercut" and info.get("counter", false):
 				Engine.time_scale = 0.3
 				slowmo_t = 0.45
@@ -338,6 +344,35 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 				_combo_show = 1.2
 
 
+func _blood_for_hit(info: Dictionary, dir: Vector3, lvl: int) -> void:
+	var victim: Fighter = info.victim
+	var k := 0.45 if FighterRig.blood_mode == 1 else 1.0
+	var region: String = info.get("region", "")
+	var d := (dir + Vector3.UP * 0.25).normalized()
+	if region == "head":
+		var amount := (0.5 + lvl * 0.45 + victim.bleed * 0.9) * k
+		fx.blood(info.point, d, amount)
+		# salpica el pecho, los brazos y la cara de quien golpea
+		var att: Fighter = info.attacker
+		if victim.bleed > 0.15:
+			for i in 1 + int(lvl / 2):
+				var tgt := ["chest", "hand_l", "hand_r", "head"][randi() % 4] as String
+				var pt: Vector3 = att.rig.points.get(tgt, att.global_position)
+				att.rig.add_blood(pt + Vector3(randf_range(-0.07, 0.07), randf_range(-0.05, 0.08), randf_range(-0.07, 0.07)), 0.5 * k, 0.4)
+		# y la propia cara de la víctima se llena de sangre
+		victim.rig.add_blood(info.point, 0.6 * k, 0.3)
+		# golpe fuerte a la cara: escupe sangre
+		if (lvl >= 3 or info.get("counter", false) or info.reaction == "ko") and victim.bleed > 0.1:
+			var mouth: Vector3 = victim.rig.points.get("nose", info.point) + Vector3.DOWN * 0.05
+			fx.spit(mouth, d)
+	elif region == "body" and lvl >= 2:
+		fx.blood(info.point, d, (0.2 + lvl * 0.2) * k)
+		if victim.body_dmg > 25.0 and randf() < 0.5:
+			fx.spit(victim.rig.points.get("nose", info.point), -victim.global_transform.basis.z * 0.6 + Vector3.DOWN * 0.4)
+	if info.reaction == "ko":
+		fx.blood(info.point, d, 2.6 * k)
+
+
 func _events(f: Fighter) -> void:
 	# goteo de sangre de nariz y ceja
 	if f.bleed > 0.08 and FighterRig.blood_mode > 0:
@@ -345,11 +380,21 @@ func _events(f: Fighter) -> void:
 		if t <= 0.0:
 			t = randf_range(0.5, 1.4) / (0.4 + f.bleed)
 			fx.drip(f.rig.points.get("nose", f.global_position + Vector3.UP * 1.6))
+			# la sangre baja por la barbilla al pecho
+			if f.bleed > 0.3 and randf() < 0.4:
+				var chest: Vector3 = f.rig.points.chest
+				f.rig.add_blood(chest + Vector3.UP * 0.12 - f.global_transform.basis.z * 0.12 + f.global_transform.basis.x * randf_range(-0.07, 0.07), 0.35)
 		_drip_t[f] = t
 	# caída al suelo en las reacciones de derribo
 	if f.move.is_empty():
 		return
 	var n: String = f.move.get("name", "")
+	# charco bajo la cabeza de quien yace sangrando
+	if FighterRig.blood_mode > 0 and ((n == "launch" and f.move_t > 0.55 and f.move_t < 1.3) or (n == "ko" and f.move_t > 0.55)):
+		if f.bleed > 0.05 or n == "ko":
+			var grow := get_physics_process_delta_time() * (0.25 if n == "ko" else 0.12) * (0.4 + f.bleed)
+			var key := "%d_%d" % [f.get_instance_id(), int((f.time - f.move_t) * 10.0)]
+			fx.pool(key, f.rig.points.get("head", f.global_position), grow * (0.5 if FighterRig.blood_mode == 1 else 1.0))
 	if (n == "launch" or n == "ko") and f.get_meta("fell_at", -1.0) != f.move_t:
 		var prev: float = f.get_meta("prev_t", 0.0)
 		if prev < 0.52 and f.move_t >= 0.52:
@@ -378,21 +423,36 @@ func _trails() -> void:
 
 
 func _separate() -> void:
-	if player.sync_target or foe.sync_target:
-		return
-	var d := foe.global_position - player.global_position
-	d.y = 0
-	var l := d.length()
-	if l < Fighter.SEPARATION and l > 0.001:
-		var push := d / l * (Fighter.SEPARATION - l) * 0.5
-		player.global_position -= push
-		foe.global_position += push
+	if not (player.sync_target or foe.sync_target):
+		var d := foe.global_position - player.global_position
+		d.y = 0
+		var l := d.length()
+		if l < Fighter.SEPARATION and l > 0.001:
+			var push := d / l * (Fighter.SEPARATION - l) * 0.5
+			player.global_position -= push
+			foe.global_position += push
 	for f: Fighter in [player, foe]:
-		var p := f.global_position
-		var lim := Arena.HALF - 0.3
-		p.x = clampf(p.x, -lim, lim)
-		p.z = clampf(p.z, -lim, lim)
-		f.global_position = p
+		_keep_inside(f)
+
+
+## Nadie sale del patio ni atraviesa paredes o la jardinera, tampoco tumbado.
+func _keep_inside(f: Fighter) -> void:
+	var p := Arena.constrain(f.global_position, 0.32)
+	var n: String = f.move.get("name", "")
+	var lying := (n == "launch" and f.move_t > 0.25 and f.move_t < 1.7) or (n == "ko" and f.move_t > 0.25)
+	if lying:
+		# el cuerpo tumbado ocupa ~0,9 m hacia atrás (cabeza) y ~0,8 m hacia delante (pies)
+		var back := f.global_transform.basis.z
+		back.y = 0
+		back = back.normalized()
+		for tip_len in [0.95, -0.85]:
+			var tip: Vector3 = p + back * tip_len
+			var fixed := Arena.constrain(tip, 0.14)
+			p += fixed - tip
+		p = Arena.constrain(p, 0.32)
+	elif n == "wall_splat" or n == "dazed":
+		p = Arena.constrain(p, 0.4)
+	f.global_position = Vector3(p.x, 0, p.z)
 
 
 func _on_footstep(f: Fighter, strength: float) -> void:
@@ -408,8 +468,9 @@ func _on_whoosh(_f: Fighter, kind: int) -> void:
 func _on_wall(f: Fighter, point: Vector3, strength: float) -> void:
 	Sfx.play("wall", 0.0)
 	fx.dust(point, 20, 1.6)
-	if FighterRig.blood_mode > 0 and f.bleed > 0.15:
-		fx.wall_stain(point + Vector3.DOWN * 0.2, f.global_transform.basis.z, 0.5 + f.bleed * 0.4)
+	if FighterRig.blood_mode > 0:
+		fx.wall_stain(point + Vector3.DOWN * 0.15, f.global_transform.basis.z, (0.4 + f.bleed * 0.8) * (0.5 if FighterRig.blood_mode == 1 else 1.0))
+		f.bleed = minf(1.0, f.bleed + 0.25)
 	fx.impact(point, Vector3.UP, 3, "hit")
 	cam.add_trauma(0.55)
 	cam.kick_fov(5.0)
@@ -431,6 +492,7 @@ func _on_ko(who: Fighter) -> void:
 	touch.enabled = false
 	touch.release_all()
 	_attack_held = false
+	_kick_held = false
 	_guard_held = false
 
 
@@ -504,7 +566,7 @@ func start_fight() -> void:
 	Sfx.set_drums(-17.0, 2.0)
 	if not _shown_hint:
 		_shown_hint = true
-		_hint.text = "GOLPE: combo (pegado al rival sale un gancho) · Hacia el rival + GOLPE: patada fuerte · Atrás + GOLPE: empujón\nDEFENSA: cubrirse (la barra blanca se llena) · justo a tiempo: parada · con dirección lateral: esquiva → ¡CONTRA!"
+		_hint.text = "Machaca GOLPE para encadenar puños · PATADA en mitad de la serie la remata · Hacia el rival + PATADA: patada frontal · Atrás + GOLPE: empujón\nDEFENSA: mantener / justo a tiempo = parada · ESQUIVA: si el golpe te roza, ¡CONTRA!"
 		_hint.modulate.a = 1.0
 		var tw := create_tween()
 		tw.tween_interval(8.0)
@@ -526,6 +588,7 @@ func _toggle_pause() -> void:
 	_pause_root.visible = paused
 	touch.release_all()
 	_attack_held = false
+	_kick_held = false
 	_guard_held = false
 
 
@@ -545,6 +608,9 @@ func _build_ui() -> void:
 	ui.add_child(touch)
 	touch.attack_down.connect(_on_attack_down)
 	touch.attack_up.connect(_on_attack_up)
+	touch.kick_down.connect(_on_kick_down)
+	touch.kick_up.connect(_on_kick_up)
+	touch.dodge_down.connect(_on_dodge_down)
 	touch.guard_down.connect(_on_guard_down)
 	touch.guard_up.connect(_on_guard_up)
 	touch.special_down.connect(_on_special)
@@ -558,7 +624,7 @@ func _build_ui() -> void:
 	ui.add_child(_banner)
 	_hint = _label("", 19, Color(1, 0.95, 0.88))
 	_hint.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	_hint.position = Vector2(-560, 76)
+	_hint.position = Vector2(-560, 96)
 	_hint.size = Vector2(1120, 60)
 	_hint.modulate.a = 0.0
 	ui.add_child(_hint)
@@ -621,7 +687,7 @@ func _build_ui() -> void:
 	# pausa
 	_pause_root = _overlay_panel("Title", "Sub")
 	(_pause_root.get_node("Title") as Label).text = "PAUSA"
-	(_pause_root.get_node("Sub") as Label).text = "Teclado: WASD mover · J golpe · L fuerte · K defensa · I remate"
+	(_pause_root.get_node("Sub") as Label).text = "Teclado: WASD mover · J golpe · K patada · L defensa · Espacio esquiva · I remate"
 	var pb := _pause_root.get_node("Box") as VBoxContainer
 	var cont := _button("CONTINUAR", 28)
 	cont.pressed.connect(_toggle_pause)

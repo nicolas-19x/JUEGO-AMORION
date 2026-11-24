@@ -119,8 +119,11 @@ func update(delta: float) -> void:
 	if not me.can_act():
 		# durante un combo propio: decidir si lo continúa
 		if me.state == "attack" and combo_left > 0 and me.move_t > float(me.move.get("cancel", 99.0)) - 0.1:
-			if me.move.get("chain", "") != "":
-				c.light = true
+			if not me.move.get("ender", false):
+				if combo_left == 1 and randf() < 0.5:
+					c.kick = true
+				else:
+					c.punch = true
 				combo_left -= 1
 		return
 
@@ -193,9 +196,12 @@ func _attack(dist: float, punish: bool) -> void:
 	elif r < 0.1 and dist < 1.8:
 		c.heavy = true
 		combo_left = 0
+	elif r < 0.3:
+		c.kick = true
+		combo_left = randi_range(0, 1)
 	else:
-		c.light = true
-		combo_left = randi_range(0, 2) if not punish else 2
+		c.punch = true
+		combo_left = randi_range(1, 4) if not punish else 3
 		if level == 0:
 			combo_left = mini(combo_left, 1)
 	attack_cd = randf_range(_p(1.4, 0.8, 0.5), _p(2.6, 1.7, 1.1))

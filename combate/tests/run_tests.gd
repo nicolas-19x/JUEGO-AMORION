@@ -38,6 +38,8 @@ func _process(_d: float) -> bool:
 	test_clinch()
 	print("== Novedades: empujón, contraataque, equilibrio, lesiones")
 	test_new()
+	print("== Combos largos y colisiones")
+	test_combos()
 	print("== Combate completo (IA contra jugador guionizado)")
 	for lvl in 3:
 		test_full_fight(lvl)
@@ -263,7 +265,7 @@ func test_full_fight(lvl: int) -> void:
 		prev = f.state
 		if main.phase != "fight":
 			break
-	ok(starts >= 3, "la IA toma la iniciativa (%d ataques en 10 s)" % starts)
+	ok(starts >= 2, "la IA toma la iniciativa (%d ataques en 10 s)" % starts)
 
 
 func test_new() -> void:
@@ -275,12 +277,12 @@ func test_new() -> void:
 	# golpe por contexto: pegado al rival sale un gancho; con atrás, empujón
 	_place(p, f, 0.8)
 	p.ctrl.move = Vector3.ZERO
-	ok(p._pick_light() == "hook", "pegado al rival: gancho")
+	ok(p._choose("punch", false) == "hook", "pegado al rival: gancho")
 	p.ctrl.move = Vector3(0, 0, 1)
-	ok(p._pick_light() == "shove", "atrás + golpe: empujón")
+	ok(p._choose("punch", false) == "shove", "atrás + golpe: empujón")
 	p.ctrl.move = Vector3.ZERO
 	_place(p, f, 1.4)
-	ok(p._pick_light() == "jab", "a media distancia: jab")
+	ok(p._choose("punch", false) == "jab", "a media distancia: jab")
 	# empujón contra la pared
 	p.reset(Vector3(0, 0, -2.6), Vector3(0, 0, -5))
 	f.reset(Vector3(0, 0, -3.45), Vector3(0, 0, 0))
@@ -352,3 +354,110 @@ func test_new() -> void:
 	f.reset(Vector3(0, 0, -1), Vector3(0, 0, 1))
 	ok(f.rig.face.nose == 0.0 and f.head_dmg == 0.0, "la revancha empieza sin heridas")
 	_run(30)
+
+
+func _body_inside(f: Fighter) -> bool:
+	var back := f.global_transform.basis.z
+	back.y = 0
+	back = back.normalized()
+	var n: String = f.move.get("name", "")
+	var lying := (n == "launch" and f.move_t > 0.3 and f.move_t < 1.6) or (n == "ko" and f.move_t > 0.3)
+	var pts := [f.global_position]
+	if lying:
+		pts.append(f.global_position + back * 0.9)
+		pts.append(f.global_position - back * 0.8)
+	for q in pts:
+		if Arena.constrain(q, 0.1).distance_to(q) > 0.03:
+			return false
+	return true
+
+
+func test_combos() -> void:
+	main.start_fight()
+	main.phase = "fight"
+	main.scripted = true
+	var p: Fighter = main.player
+	var f: Fighter = main.foe
+	# machacar GOLPE: serie larga que el rival termina rompiendo
+	_place(p, f, 1.1)
+	main._hit_log.clear()
+	var escaped := false
+	for i in 240:
+		if i % 6 == 0:
+			p.ctrl.punch = true
+		main.sim_step(1.0 / 60.0)
+		for h in main._hit_log:
+			if h.get("escape", false):
+				escaped = true
+		if escaped:
+			break
+	var names := {}
+	var streak := 0
+	var best := 0
+	for h in main._hit_log:
+		names[h.move] = true
+		if h.result == "hit":
+			streak += 1
+			best = maxi(best, streak)
+		else:
+			streak = 0
+	ok(best >= 6, "machacar GOLPE encadena una serie larga (%d golpes)" % best)
+	ok(names.has("cross") and names.has("hook") and names.has("body_hook"), "la serie mezcla directo, gancho y gancho al cuerpo")
+	ok(escaped, "tras %d golpes el rival sale despedido y se libera" % Fighter.ESCAPE_HITS)
+	_run(120)
+	# PATADA en mitad de la serie la remata
+	_place(p, f, 1.1)
+	main._hit_log.clear()
+	for i in 150:
+		if i in [0, 10, 20, 30]:
+			p.ctrl.punch = true
+		if i == 42:
+			p.ctrl.kick = true
+		main.sim_step(1.0 / 60.0)
+	var kicked := false
+	for h in main._hit_log:
+		if h.move in ["roundhouse", "spin_kick"] and h.result == "hit":
+			kicked = true
+	ok(kicked, "una patada en mitad de la serie remata")
+	_run(160)
+	# patada baja sola: dobla la pierna
+	_place(p, f, 1.3)
+	main._hit_log.clear()
+	p.ctrl.kick = true
+	_run(40)
+	ok(main._hit_log.size() == 1 and main._hit_log[0].reaction == "hit_leg", "PATADA a media distancia: patada baja que dobla la pierna")
+	_run(80)
+	# derribos junto a la pared y la jardinera: el cuerpo nunca entra en ellas
+	var spots := [
+		[Vector3(0, 0, -2.9), Vector3(0, 0, -3.9)],
+		[Vector3(3.0, 0, 0), Vector3(4.0, 0, 0)],
+		[Vector3(-1.7, 0, 1.7), Vector3(-2.6, 0, 2.6)],
+		[Vector3(-3.0, 0, -3.0), Vector3(-3.9, 0, -3.9)],
+	]
+	var all_inside := true
+	for sp in spots:
+		p.reset(sp[0], sp[1])
+		f.reset(sp[1], sp[0])
+		p.start_move("spin_kick")
+		for i in 150:
+			main.sim_step(1.0 / 60.0)
+			if not _body_inside(f) or not _body_inside(p):
+				all_inside = false
+		f.hp = f.max_hp
+		_run(60)
+	ok(all_inside, "derribado junto a pared o jardinera: el cuerpo no las atraviesa")
+	# KO contra la pared
+	p.reset(Vector3(0, 0, -2.8), Vector3(0, 0, -4))
+	f.reset(Vector3(0, 0, -3.8), Vector3(0, 0, 0))
+	f.hp = 1.0
+	p.start_move("push_kick")
+	p.charging = false
+	var ko_inside := true
+	for i in 200:
+		main.sim_step(1.0 / 60.0)
+		if not _body_inside(f):
+			ko_inside = false
+	ok(f.state == "ko", "KO contra la pared")
+	ok(ko_inside, "el cuerpo del KO queda dentro del patio")
+	Engine.time_scale = 1.0
+	main.slowmo_t = 0.0

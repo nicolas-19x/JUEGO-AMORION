@@ -23,6 +23,7 @@ signal guard_crushed(who: Fighter)
 const PARRY_WINDOW := 0.16
 const BUFFER_TIME := 0.3
 const SEPARATION := 0.62
+const ESCAPE_HITS := 9      # al noveno golpe seguido la víctima sale despedida
 
 var display_name := "Luchador"
 var opponent: Fighter
@@ -32,8 +33,9 @@ var hp := 100.0
 var is_player := false
 
 # entrada (la rellena un "cerebro": el jugador o la IA)
-var ctrl := {"move": Vector3.ZERO, "light": false, "heavy": false, "attack_held": false,
-	"guard": false, "guard_pressed": false, "dodge": Vector3.ZERO, "special": false}
+var ctrl := {"move": Vector3.ZERO, "punch": false, "kick": false, "light": false, "heavy": false,
+	"attack_held": false, "guard": false, "guard_pressed": false, "dodge": Vector3.ZERO,
+	"dodge_pressed": false, "special": false}
 
 var state := "free"          # free, block, attack, dodge, react, ko
 var move: Dictionary = {}
@@ -69,8 +71,13 @@ var posture_idle := 0.0
 var counter_t := 0.0
 var evaded := false
 var was_counter := false
+var string_n := 0          # golpes en la serie actual
+var spin_base := 0.0
+var _slip_side := 1.0
 # lesiones
 var head_dmg := 0.0
+var leg_dmg := 0.0
+var _last_react := ""
 var body_dmg := 0.0
 var bleed := 0.0
 var _face_t := 0.0
@@ -129,6 +136,7 @@ func reset(pos: Vector3, face_to: Vector3) -> void:
 	counter_t = 0.0
 	head_dmg = 0.0
 	body_dmg = 0.0
+	leg_dmg = 0.0
 	bleed = 0.0
 	evaded = false
 	queued = ""
@@ -170,6 +178,11 @@ func step(delta: float) -> void:
 		_update_rig(0.0)
 		return
 	rig.shake_offset = Vector3.ZERO
+	# agarre interrumpido o fallado: la víctima se suelta
+	if sync_target and (sync_target.state != "attack" or not sync_target.move.has("sync")):
+		sync_target = null
+		if move.get("name", "") == "clinched":
+			start_reaction("dazed", null, 1.0, 1.0)
 	match state:
 		"free", "block":
 			_free_update(delta)
@@ -180,8 +193,11 @@ func step(delta: float) -> void:
 
 
 func _read_input(delta: float) -> void:
-	if ctrl.light:
-		buffer = "light"
+	if ctrl.light or ctrl.punch:
+		buffer = "punch"
+		buffer_t = BUFFER_TIME
+	if ctrl.kick:
+		buffer = "kick"
 		buffer_t = BUFFER_TIME
 	if ctrl.heavy:
 		buffer = "heavy"
@@ -189,15 +205,18 @@ func _read_input(delta: float) -> void:
 	if ctrl.special:
 		buffer = "special"
 		buffer_t = BUFFER_TIME
-	if ctrl.dodge != Vector3.ZERO:
+	if ctrl.dodge != Vector3.ZERO or ctrl.dodge_pressed:
 		buffer = "dodge"
 		buffer_t = BUFFER_TIME * 0.6
+		ctrl.dodge_pressed = false
 	if ctrl.guard_pressed:
 		guard_age = 0.0
 	buffer_t -= delta
 	if buffer_t <= 0.0:
 		buffer = ""
 	ctrl.light = false
+	ctrl.punch = false
+	ctrl.kick = false
 	ctrl.heavy = false
 	ctrl.special = false
 	ctrl.guard_pressed = false
@@ -237,6 +256,7 @@ func _free_update(delta: float) -> void:
 			spd = 3.4
 		if state == "block":
 			spd *= 0.45
+		spd *= 1.0 - clampf(leg_dmg / 60.0, 0.0, 0.3)  # cojera
 		target_vel = dir * spd * amount
 	var accel := 16.0 if target_vel.length() > vel.length() else 20.0
 	vel = vel.move_toward(target_vel, accel * delta)
@@ -249,12 +269,14 @@ func _free_update(delta: float) -> void:
 func _try_start_buffered() -> bool:
 	var b := buffer
 	match b:
-		"light":
+		"punch", "kick":
 			buffer = ""
-			start_move(_pick_light())
+			string_n = 0
+			start_move(_choose(b, false))
 			return true
 		"heavy":
 			buffer = ""
+			string_n = 0
 			start_move("push_kick")
 			return true
 		"special":
@@ -267,28 +289,66 @@ func _try_start_buffered() -> bool:
 			buffer = ""
 			var d: Vector3 = ctrl.dodge
 			ctrl.dodge = Vector3.ZERO
+			if d == Vector3.ZERO:
+				# sin dirección: quiebro lateral, alternando lado
+				_slip_side = -_slip_side
+				d = global_transform.basis.x * _slip_side
 			start_dodge(d)
 			return true
 	return false
 
 
-## El mismo botón elige el golpe según la situación.
-func _pick_light() -> String:
+## Elige el golpe según el botón, la serie en curso, la distancia y la dirección.
+func _choose(input: String, chaining: bool) -> String:
 	if counter_t > 0.0:
 		counter_t = 0.0
 		was_counter = true
-		return "uppercut"
+		return "uppercut" if input == "punch" else "spin_kick"
 	was_counter = false
-	if opponent:
-		var away := global_position - opponent.global_position
-		away.y = 0
-		var mv: Vector3 = ctrl.move
-		mv.y = 0
-		if mv.length() > 0.6 and away.length() > 0.01 and mv.normalized().dot(away.normalized()) > 0.6 and _dist() < 1.6:
-			return "shove"
-		if _dist() < 0.95:
-			return "hook"
-	return "jab"
+	var cur: String = move.get("name", "") if chaining else ""
+	var dir := _stick_relative()   # x: lateral, y: hacia el rival
+	var close := _dist() < 0.9
+	if input == "punch":
+		if not chaining:
+			if dir.y < -0.6 and _dist() < 1.6:
+				return "shove"
+			if opponent and opponent.state == "react" and opponent.move.get("name", "") in ["stagger", "dazed", "wall_splat"]:
+				return "uppercut"
+			return "hook" if close else "jab"
+		match cur:
+			"jab":
+				return "cross"
+			"cross":
+				return "hook"
+			"hook":
+				return "body_hook"
+			"body_hook", "low_kick", "roundhouse":
+				return "cross"
+			"uppercut", "knee":
+				return "hook"
+		return "jab"
+	# patada
+	if not chaining:
+		if dir.y > 0.7:
+			return "push_kick"
+		return "knee" if close else "low_kick"
+	if string_n >= 4 or cur == "roundhouse":
+		return "spin_kick"
+	return "roundhouse"
+
+
+## Dirección del joystick relativa al rival (y > 0: hacia él).
+func _stick_relative() -> Vector2:
+	var mv: Vector3 = ctrl.move
+	mv.y = 0
+	if mv.length() < 0.5 or not opponent:
+		return Vector2.ZERO
+	var to := opponent.global_position - global_position
+	to.y = 0
+	to = to.normalized()
+	var right := to.cross(Vector3.UP)
+	var n := mv.normalized()
+	return Vector2(n.dot(right), n.dot(to))
 
 
 func add_posture(v: float) -> void:
@@ -322,7 +382,9 @@ func _keep_on_floor() -> void:
 
 func start_move(mv: String) -> void:
 	var m: Dictionary = _moves[mv]
-	_begin(m, "attack", 0.07)
+	_begin(m, "attack", 0.05 if string_n > 0 else 0.07)
+	string_n += 1
+	spin_base = yaw
 	charge_t = 0.0
 	charging = m.has("charge_at")
 	# deformación del desplazamiento raíz: llegar al contacto a la distancia justa
@@ -330,9 +392,10 @@ func start_move(mv: String) -> void:
 	if opponent and m.has("hit"):
 		var contact_t: float = float(m.hit.from) + 0.02
 		var nominal := FighterMoves.root_at(m, contact_t)
-		var desired := clampf(_dist() - float(m.reach), -0.15, nominal + float(m.lunge))
+		# nunca recular para "encajar" la distancia: si está más cerca, conecta antes
+		var desired := clampf(_dist() - float(m.reach), 0.0, nominal + float(m.lunge))
 		root_k = desired / nominal if nominal > 0.01 else 1.0
-		root_k = clampf(root_k, -0.6, 3.5)
+		root_k = clampf(root_k, 0.0, 3.5)
 	if m.has("sync") and opponent:
 		# el atacante cubre la mitad de la distancia y atrae a la víctima la otra mitad
 		var nom := FighterMoves.root_at(m, float(m.hit.from))
@@ -404,23 +467,38 @@ func _action_update(delta: float) -> void:
 	if m.has("whoosh") and prev_t < float(m.whoosh[0]) and move_t >= float(m.whoosh[0]):
 		whoosh.emit(self, int(m.whoosh[1]))
 	# seguimiento del objetivo durante la anticipación
-	if state == "attack" and move_t < float(m.get("track", 0.0)):
+	if state == "attack" and move_t < float(m.get("track", 0.0)) and not m.has("spin"):
 		_face_opponent(delta, 9.0)
 		move_basis = global_transform.basis
 	# encadenar combos
 	if state == "attack":
-		if buffer == "light" and m.get("chain", "") != "" and move_t >= float(m.cancel) - 0.12:
-			queued = m.chain
+		# si el golpe conectó, el siguiente puede salir justo después del contacto
+		var cancel_at: float = float(m.cancel)
+		if hit_done and m.has("hit"):
+			cancel_at = minf(cancel_at, float(m.hit.to) + 0.03)
+		if (buffer == "punch" or buffer == "kick") and not m.get("ender", false) and move_t >= cancel_at - 0.15:
+			queued = _choose(buffer, true)
 			buffer = ""
-		if queued != "" and move_t >= float(m.cancel):
-			start_move(queued)
+		if queued != "" and move_t >= cancel_at:
+			var q := queued
+			queued = ""
+			start_move(q)
 			return
+	# giro del cuerpo entero (patada giratoria): el ángulo se aplica a la raíz
+	if m.has("spin"):
+		yaw = spin_base + deg_to_rad(FighterMoves.curve_at(m.spin, move_t))
+		rotation.y = yaw
 	# sincronía: la víctima del agarre se coloca frente al atacante
 	if state == "attack" and m.has("sync") and opponent and opponent.sync_target == self and move_t < float(m.hit.to):
 		var want := global_position - global_transform.basis.z * float(m.sync)
 		opponent.global_position = opponent.global_position.lerp(want, minf(1.0, delta * 9.0))
 		if global_position.distance_to(opponent.global_position) < float(m.sync) * 0.92:
 			opponent.global_position = want
+		# si la víctima no cabe (pared, jardinera), el atacante retrocede lo necesario
+		var safe := Arena.constrain(opponent.global_position, 0.32)
+		if safe.distance_to(opponent.global_position) > 0.001:
+			global_position += safe - opponent.global_position
+			opponent.global_position = safe
 		opponent._face_opponent(delta, 20.0)
 
 	# desplazamiento raíz
@@ -567,7 +645,8 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 	var amp := clampf(0.7 + 0.15 * level + absf(side) * 0.1, 0.6, 1.3)
 	var push := float(h.push) * (1.0 + 0.6 * clampf(charge_t / 0.6, 0.0, 1.0))
 
-	var reaction := "hit_head" if height > 1.28 else "hit_body"
+	var region: String = h.get("region", "head" if height > 1.28 else "body")
+	var reaction := "hit_head" if region == "head" else "hit_body"
 	var forced: String = h.get("react", "")
 	if forced != "":
 		reaction = forced
@@ -575,22 +654,41 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 		# empujones acumulados: pierde el equilibrio
 		reaction = "stagger"
 		victim.posture = 50.0
-	elif level >= 3 or (victim.combo_taken >= 3 and level >= 2):
+	elif level >= 3:
 		reaction = "stagger"
+	# variedad sistémica: golpes laterales fuertes giran más; nunca la misma reacción dos veces
+	if forced == "" and reaction in ["hit_head", "hit_body"]:
+		var heavy_side := absf(side) > 0.55 and level >= 2
+		var alt := reaction + "_b"
+		if heavy_side or victim._last_react == reaction:
+			reaction = alt
+		victim._last_react = reaction
+	# serie demasiado larga: la víctima sale despedida y se libera
+	if victim.combo_taken >= ESCAPE_HITS and reaction in ["hit_head", "hit_body", "hit_leg", "hit_head_b", "hit_body_b"]:
+		reaction = "stagger"
+		push = maxf(push, 1.5)
+		info.escape = true
 	if victim.hp <= 0.0:
 		reaction = "ko"
 		push = maxf(push, 1.1)
 	info.reaction = reaction
-	info.region = "head" if height > 1.28 else "body"
+	info.region = region
 	info.side = side
 	if not h.get("clean", false):
 		victim._take_injury(point, dmg, level, side, info.region == "head", counter)
 	victim.start_reaction(reaction, self, side, amp, push)
-	victim.rig.flash(0.35 + 0.1 * level)
+	# cada golpe seguido acorta el aturdimiento: la víctima acaba recuperándose
+	if reaction in ["hit_head", "hit_body", "hit_leg", "hit_head_b", "hit_body_b"]:
+		victim.move_speed = 1.0 + 0.07 * maxf(0.0, victim.combo_taken - 3.0)
+	if region == "legs":
+		victim.leg_dmg += dmg
+	# la sangre del rival mancha las vendas de quien golpea
+	if victim.bleed > 0.1 and region == "head":
+		rig.add_mark(rig.points.get(String(h.limb), point), 0.35 + victim.bleed * 0.5, true)
 
 	# muelles aditivos: el cuerpo responde al punto y dirección reales del golpe
 	var pitch := 7.0 + 4.0 * level
-	if reaction == "hit_body":
+	if reaction.begins_with("hit_body"):
 		victim._kick_springs(Vector3(-pitch, -side * 10.0, 0), Vector3(-4, -side * 8.0, 0), Vector3(0, -0.02, 0.05))
 	else:
 		victim._kick_springs(Vector3(pitch * 0.6, -side * 14.0, -side * 8.0), Vector3(pitch, -side * 26.0, -side * 10.0), Vector3(side * 0.03, 0, 0.04))
@@ -611,12 +709,13 @@ func _take_injury(point: Vector3, dmg: float, level: int, side: float, head: boo
 		head_dmg += dmg
 		rig.add_mark(point, 0.28 + 0.2 * level)
 		var f := rig.face
-		if head_dmg > 9.0 and (absf(side) < 0.7 or level >= 2):
-			f.nose = minf(1.0, f.nose + 0.18 * level)
-			bleed = minf(1.0, bleed + 0.2 * level)
-		if level >= 2 and head_dmg > 20.0:
+		if head_dmg > 6.0:
+			f.nose = minf(1.0, f.nose + 0.14 * level)
+			bleed = minf(1.0, bleed + 0.15 * level)
+		if level >= 2 and head_dmg > 14.0:
 			f.lip = minf(1.0, f.lip + 0.3)
-		if level >= 3 and (head_dmg > 22.0 or counter):
+		f.smear = minf(1.0, float(f.get("smear", 0.0)) + 0.04 * level * (1.0 if head_dmg > 12.0 else 0.0))
+		if (level >= 3 and (head_dmg > 16.0 or counter)) or head_dmg > 34.0:
 			if f.cut < 0.05:
 				f.cut_side = struck
 			f.cut = minf(1.0, f.cut + 0.45)
@@ -624,7 +723,7 @@ func _take_injury(point: Vector3, dmg: float, level: int, side: float, head: boo
 		var sk := "swell_l" if struck < 0.0 else "swell_r"
 		if head_dmg > 16.0:
 			f[sk] = minf(1.0, float(f[sk]) + dmg / 38.0)
-	else:
+	elif not (point.y - global_position.y < 0.7):
 		body_dmg += dmg
 		rig.add_mark(point, 0.32 + 0.22 * level)
 	rig.update_face(clampf(1.0 - hp / max_hp, 0.0, 1.0) * 0.8 + 0.1)

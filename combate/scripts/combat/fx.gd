@@ -11,7 +11,8 @@ var _trails := {}
 var _stains: Array[MeshInstance3D] = []
 var _stain_mats: Array[StandardMaterial3D] = []
 var _drops: Array = []
-const MAX_STAINS := 40
+const MAX_STAINS := 90
+var _pools := {}
 
 
 func _ready() -> void:
@@ -80,7 +81,7 @@ func impact(point: Vector3, dir: Vector3, level: int, kind: String) -> void:
 		_:
 			var warm := Color(1.0, 0.72, 0.38)
 			_sparks(point, dir + Vector3.UP * 0.2, 6 + level * 5, warm, 2.0 + level * 1.0)
-			_billboard(point, 0.18 + level * 0.07, Color(1.0, 0.85, 0.65, 0.9), 0.07 + level * 0.015, false, 1.5)
+			_billboard(point, 0.12 + level * 0.05, Color(1.0, 0.55, 0.35, 0.6), 0.05 + level * 0.012, false, 1.5)
 			if level >= 2:
 				_billboard(point, 0.2 + level * 0.06, Color(1.0, 0.8, 0.55, 0.7), 0.12 + level * 0.03, true, 3.0 + level)
 
@@ -230,13 +231,13 @@ func _stain_material(i: int) -> StandardMaterial3D:
 	while _stain_mats.size() < 4:
 		var m := StandardMaterial3D.new()
 		m.albedo_texture = _blood_tex(_stain_mats.size())
-		m.albedo_color = Color(0.36, 0.02, 0.03, 0.9)
+		m.albedo_color = Color(0.4, 0.015, 0.025, 0.95)
 		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		m.roughness = 0.2
 		m.metallic_specular = 0.6
 		m.cull_mode = BaseMaterial3D.CULL_DISABLED
 		_stain_mats.append(m)
-	return _stain_mats[i % 4]
+	return _stain_mats[absi(i) % 4]
 
 
 func _stain(pos: Vector3, normal: Vector3, size: float) -> void:
@@ -263,49 +264,126 @@ func clear_stains() -> void:
 	for mi in _stains:
 		mi.queue_free()
 	_stains.clear()
+	for e in _pools.values():
+		if is_instance_valid(e.node):
+			(e.node as Node).queue_free()
+	_pools.clear()
 	for d in _drops:
 		(d.node as Node).queue_free()
 	_drops.clear()
 
 
-func blood(point: Vector3, dir: Vector3, amount: float) -> void:
-	var n := clampi(int(4 + amount * 10.0), 3, 18)
+func _blood_mat() -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(0.46, 0.015, 0.025)
+	m.roughness = 0.12
+	m.metallic_specular = 0.7
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+
+func _burst(point: Vector3, dir: Vector3, n: int, speed: float, spread: float, streak: bool, life: float) -> void:
 	var p := CPUParticles3D.new()
 	add_child(p)
 	p.global_position = point
 	p.one_shot = true
-	p.explosiveness = 0.95
+	p.explosiveness = 0.92
 	p.amount = n
-	p.lifetime = 0.55
-	var mesh := SphereMesh.new()
-	mesh.radius = 0.012
-	mesh.height = 0.024
-	mesh.radial_segments = 6
-	mesh.rings = 3
-	var m := StandardMaterial3D.new()
-	m.albedo_color = Color(0.42, 0.02, 0.03)
-	m.roughness = 0.15
-	mesh.material = m
-	p.mesh = mesh
+	p.lifetime = life
+	if streak:
+		var q := QuadMesh.new()
+		q.size = Vector2(0.012, 0.07)
+		q.material = _blood_mat()
+		p.mesh = q
+		p.particle_flag_align_y = true
+	else:
+		var sm := SphereMesh.new()
+		sm.radius = 0.011
+		sm.height = 0.022
+		sm.radial_segments = 6
+		sm.rings = 3
+		sm.material = _blood_mat()
+		p.mesh = sm
 	p.direction = dir.normalized()
-	p.spread = 28.0
-	p.initial_velocity_min = 1.5 + amount
-	p.initial_velocity_max = 3.0 + amount * 2.0
+	p.spread = spread
+	p.initial_velocity_min = speed * 0.45
+	p.initial_velocity_max = speed
 	p.gravity = Vector3(0, -9.8, 0)
 	p.scale_amount_min = 0.5
-	p.scale_amount_max = 1.5
+	p.scale_amount_max = 1.8
 	p.emitting = true
-	_live.append({"node": p, "t": 0.0, "life": 0.8})
-	# manchas donde caerá: en el suelo, más lejos cuanto más fuerte
+	_live.append({"node": p, "t": 0.0, "life": life + 0.3})
+
+
+## Salpicadura de sangre: chorro de regueros alargados + gotas + manchas donde caen.
+func blood(point: Vector3, dir: Vector3, amount: float) -> void:
+	var a := clampf(amount, 0.0, 3.0)
+	_burst(point, dir, clampi(int(6 + a * 14.0), 6, 44), 2.2 + a * 1.6, 24.0, true, 0.5)
+	_burst(point, dir + Vector3.UP * 0.3, clampi(int(4 + a * 8.0), 4, 26), 1.4 + a, 45.0, false, 0.7)
 	var flat := Vector3(dir.x, 0, dir.z).normalized()
-	for i in clampi(int(1 + amount * 2.5), 1, 5):
-		var d := randf_range(0.3, 0.8 + amount * 0.5)
-		var spot := Vector3(point.x, 0, point.z) + flat * d + Vector3(randf_range(-0.2, 0.2), 0, randf_range(-0.2, 0.2))
-		_stain(spot, Vector3.UP, randf_range(0.08, 0.16) + amount * 0.05)
+	for i in clampi(int(2 + a * 3.0), 2, 10):
+		var d := randf_range(0.3, 0.9 + a * 0.55)
+		var spot := Vector3(point.x, 0, point.z) + flat * d + Vector3(randf_range(-0.25, 0.25), 0, randf_range(-0.25, 0.25))
+		_stain(Arena.constrain(spot, 0.05), Vector3.UP, randf_range(0.14, 0.28) + a * 0.12)
+
+
+## Escupir sangre por la boca tras un golpe fuerte a la cara.
+func spit(mouth: Vector3, dir: Vector3) -> void:
+	_burst(mouth, dir + Vector3.UP * 0.15, 18, 3.2, 14.0, true, 0.45)
+	_burst(mouth, dir, 10, 2.0, 30.0, false, 0.6)
+	var flat := Vector3(dir.x, 0, dir.z).normalized()
+	for i in 3:
+		var spot := Vector3(mouth.x, 0, mouth.z) + flat * randf_range(0.6, 1.4)
+		_stain(Arena.constrain(spot, 0.05), Vector3.UP, randf_range(0.12, 0.22))
+
+
+## Charco que crece bajo un luchador tumbado que sangra.
+func pool(key: String, pos: Vector3, grow: float) -> void:
+	if FighterRig.blood_mode == 0:
+		return
+	var e: Dictionary = _pools.get(key, {})
+	if e.is_empty() or not is_instance_valid(e.node):
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(1, 1)
+		mi.mesh = q
+		mi.material_override = _stain_material(randi())
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		e = {"node": mi, "size": 0.05, "rot": randf() * TAU}
+		_pools[key] = e
+	e.size = minf(float(e.size) + grow, 1.1)
+	var mi2: MeshInstance3D = e.node
+	var b := Basis.looking_at(Vector3.DOWN, Vector3.FORWARD).rotated(Vector3.UP, e.rot)
+	mi2.global_transform = Transform3D(b.scaled(Vector3.ONE * float(e.size)), Vector3(pos.x, 0.019, pos.z))
 
 
 func wall_stain(point: Vector3, normal: Vector3, amount: float) -> void:
-	_stain(point, normal.normalized(), 0.3 + amount * 0.25)
+	var n := normal.normalized()
+	_stain(point, n, 0.45 + amount * 0.35)
+	_stain(point + Vector3(randf_range(-0.3, 0.3), randf_range(-0.2, 0.3), 0), n, 0.2 + amount * 0.15)
+	# regueros que bajan por la pared
+	for i in 2 + int(amount * 2.0):
+		var mi := MeshInstance3D.new()
+		var q := QuadMesh.new()
+		q.size = Vector2(1, 1)
+		mi.mesh = q
+		mi.material_override = _stain_material(i)
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		var side := n.cross(Vector3.UP).normalized()
+		var top := point + side * randf_range(-0.3, 0.3)
+		var ln := randf_range(0.4, 0.9) * (0.6 + amount * 0.5)
+		var b := Basis(side * 0.06, Vector3.UP * ln, n)
+		mi.global_transform = Transform3D(b, top + Vector3.DOWN * ln * 0.5 + n * 0.02)
+		_stains.append(mi)
+	clear_overflow()
+
+
+func clear_overflow() -> void:
+	while _stains.size() > MAX_STAINS:
+		var old: MeshInstance3D = _stains.pop_front()
+		old.queue_free()
 
 
 ## Una gota que cae desde la nariz o la ceja y deja una marca pequeña al tocar el suelo.
