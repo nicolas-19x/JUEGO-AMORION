@@ -11,7 +11,8 @@ var _trails := {}
 var _stains: Array[MeshInstance3D] = []
 var _stain_mats: Array[StandardMaterial3D] = []
 var _drops: Array = []
-const MAX_STAINS := 90
+static var MAX_STAINS := 90
+static var low_quality := false
 var _pools := {}
 
 
@@ -82,8 +83,8 @@ func impact(point: Vector3, dir: Vector3, level: int, kind: String) -> void:
 			var warm := Color(1.0, 0.72, 0.38)
 			_sparks(point, dir + Vector3.UP * 0.2, 6 + level * 5, warm, 2.0 + level * 1.0)
 			_billboard(point, 0.12 + level * 0.05, Color(1.0, 0.55, 0.35, 0.6), 0.05 + level * 0.012, false, 1.5)
-			if level >= 2:
-				_billboard(point, 0.2 + level * 0.06, Color(1.0, 0.8, 0.55, 0.7), 0.12 + level * 0.03, true, 3.0 + level)
+			if level >= 3:
+				_billboard(point, 0.16 + level * 0.03, Color(1.0, 0.5, 0.3, 0.35), 0.07, true, 2.0)
 
 
 func dust(point: Vector3, amount: int, scale := 1.0) -> void:
@@ -283,6 +284,8 @@ func _blood_mat() -> StandardMaterial3D:
 
 
 func _burst(point: Vector3, dir: Vector3, n: int, speed: float, spread: float, streak: bool, life: float) -> void:
+	if low_quality:
+		n = maxi(3, n / 2)
 	var p := CPUParticles3D.new()
 	add_child(p)
 	p.global_position = point

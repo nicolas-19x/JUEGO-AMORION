@@ -21,7 +21,8 @@ signal evaded_attack(who: Fighter, attacker: Fighter)
 signal guard_crushed(who: Fighter)
 
 const PARRY_WINDOW := 0.16
-const BUFFER_TIME := 0.3
+static var BUFFER_TIME := 0.3          # ventana para encadenar (ajustable)
+static var hitstop_scale := 1.0
 const SEPARATION := 0.62
 const ESCAPE_HITS := 9      # al noveno golpe seguido la víctima sale despedida
 
@@ -78,6 +79,7 @@ var _slip_side := 1.0
 var head_dmg := 0.0
 var leg_dmg := 0.0
 var _last_react := ""
+var last_apply: Array = []   # pose dibujada este fotograma (para la repetición)
 var body_dmg := 0.0
 var bleed := 0.0
 var _face_t := 0.0
@@ -91,12 +93,21 @@ var inert_off: Dictionary = {}
 var inert_t := 1.0
 var inert_dur := 0.1
 var _pending_inert := -1.0
-var spr_chest := Vector3.ZERO
-var spr_chest_v := Vector3.ZERO
-var spr_head := Vector3.ZERO
-var spr_head_v := Vector3.ZERO
-var spr_hips := Vector3.ZERO
-var spr_hips_v := Vector3.ZERO
+# capa física parcial: un muelle amortiguado por articulación (grados o metros)
+const PHYS := {
+	"hips_rot": {"k": 260.0, "gain": 25.0, "lim": 22.0},
+	"spine_rot": {"k": 220.0, "gain": 60.0, "lim": 30.0},
+	"chest_rot": {"k": 190.0, "gain": 160.0, "lim": 40.0},
+	"head_rot": {"k": 230.0, "gain": 900.0, "lim": 50.0},
+	"hips_pos": {"k": 320.0, "gain": 0.0, "lim": 0.12},
+	"hand_l": {"k": 150.0, "gain": 0.0, "lim": 0.18},
+	"hand_r": {"k": 150.0, "gain": 0.0, "lim": 0.18},
+}
+var phys := {}
+var tone := 1.0              # tono muscular: 1 firme, ~0.15 suelto
+var _prev_vel := Vector3.ZERO
+var _prev_chest := Vector3.ZERO
+var _prev_chest_w := Vector3.ZERO
 var prev_points := {}
 var limb_vel := {}
 var _moves: Dictionary
@@ -463,6 +474,13 @@ func _action_update(delta: float) -> void:
 			return
 		charging = false
 	move_t += delta * move_speed
+	# al caer al suelo: la cabeza rebota y los brazos se sueltan
+	var mn: String = m.get("name", "")
+	if (mn == "launch" or mn == "ko") and prev_t < 0.52 and move_t >= 0.52:
+		_phys_add("head_rot", Vector3(-170, randf_range(-60, 60), 0))
+		_phys_add("chest_rot", Vector3(-60, 0, randf_range(-20, 20)))
+		_phys_add("hand_l", Vector3(0, 0.9, 0))
+		_phys_add("hand_r", Vector3(0, 0.9, 0))
 	# whoosh
 	if m.has("whoosh") and prev_t < float(m.whoosh[0]) and move_t >= float(m.whoosh[0]):
 		whoosh.emit(self, int(m.whoosh[1]))
@@ -574,6 +592,10 @@ func _check_collisions(motion: Vector3, _before: Vector3) -> void:
 				move_basis = global_transform.basis
 				freeze = 0.09
 				freeze_dir = -n
+				# la cabeza golpea la pared y rebota hacia delante
+				_phys_add("head_rot", Vector3(240, 0, randf_range(-40, 40)))
+				_phys_add("chest_rot", Vector3(90, 0, 0))
+				tone = 0.25
 				wall_impact.emit(self, c.get_position() + Vector3.UP * 1.1, spd)
 				return
 
@@ -686,12 +708,11 @@ func resolve_hit(victim: Fighter, h: Dictionary, point: Vector3, limb_velocity: 
 	if victim.bleed > 0.1 and region == "head":
 		rig.add_mark(rig.points.get(String(h.limb), point), 0.35 + victim.bleed * 0.5, true)
 
-	# muelles aditivos: el cuerpo responde al punto y dirección reales del golpe
-	var pitch := 7.0 + 4.0 * level
-	if reaction.begins_with("hit_body"):
-		victim._kick_springs(Vector3(-pitch, -side * 10.0, 0), Vector3(-4, -side * 8.0, 0), Vector3(0, -0.02, 0.05))
-	else:
-		victim._kick_springs(Vector3(pitch * 0.6, -side * 14.0, -side * 8.0), Vector3(pitch, -side * 26.0, -side * 10.0), Vector3(side * 0.03, 0, 0.04))
+	# física parcial: el cuerpo recibe el impulso real (punto + dirección del miembro)
+	var fdir := limb_velocity.normalized() if limb_velocity.length() > 0.5 else -to_att
+	fdir = (fdir + (-to_att) * 0.6).normalized()
+	victim.tone = minf(victim.tone, 0.5)
+	victim.phys_impulse(point, fdir * (0.9 + 0.55 * level))
 
 	var stop: float = [0.0, 0.05, 0.075, 0.11, 0.15, 0.17][clampi(level, 0, 5)]
 	if reaction == "ko":
@@ -730,6 +751,7 @@ func _take_injury(point: Vector3, dmg: float, level: int, side: float, head: boo
 
 
 func _hitstop(t: float, dir_to_victim: Vector3, victim: Fighter) -> void:
+	t *= hitstop_scale
 	freeze = t * 0.85
 	freeze_dir = Vector3.ZERO
 	victim.freeze = t
@@ -737,21 +759,99 @@ func _hitstop(t: float, dir_to_victim: Vector3, victim: Fighter) -> void:
 
 
 func _kick_springs(chest: Vector3, head: Vector3, hips: Vector3) -> void:
-	spr_chest_v += chest * 14.0
-	spr_head_v += head * 14.0
-	spr_hips_v += hips * 14.0
+	_phys_add("chest_rot", chest * 14.0)
+	_phys_add("head_rot", head * 14.0)
+	_phys_add("hips_pos", hips * 14.0)
+
+
+func _phys_add(key: String, dv) -> void:
+	if not phys.has(key):
+		phys[key] = {"x": Vector3.ZERO, "v": Vector3.ZERO}
+	phys[key].v = (phys[key].v as Vector3) + (dv as Vector3)
+
+
+func phys_value(key: String) -> Vector3:
+	return phys[key].x if phys.has(key) else Vector3.ZERO
+
+
+## Impulso físico de un golpe: cada articulación recibe el par de giro que le
+## corresponde según dónde cayó el golpe (r) y hacia dónde empujaba (F).
+func phys_impulse(point: Vector3, force: Vector3) -> void:
+	var inv := global_transform.basis.inverse()
+	var pivots := {
+		"hips_rot": rig.points.get("hips", global_position),
+		"spine_rot": rig.points.get("spine", global_position),
+		"chest_rot": rig.points.get("chest_base", global_position),
+		"head_rot": rig.points.get("neck", global_position),
+	}
+	for key in pivots:
+		var r: Vector3 = point - (pivots[key] as Vector3)
+		if key == "head_rot":
+			# la cabeza gira sobre el cuello con su masa por encima: palanca mínima
+			var up := global_transform.basis.y
+			var along := r.dot(up)
+			if along < 0.11:
+				r += up * (0.11 - along)
+		# cuanto más lejos del impacto, menos le llega
+		var w := exp(-maxf(0.0, r.length() - 0.15) / 0.35)
+		var tau := inv * r.cross(force)
+		_phys_add(key, Vector3(rad_to_deg(tau.x), rad_to_deg(tau.y), rad_to_deg(tau.z)) * float(PHYS[key].gain) * 0.02 * w)
+	var fl := inv * force
+	_phys_add("hips_pos", fl * 0.25)
+	# los brazos se sueltan con el golpe
+	_phys_add("hand_l", (fl + Vector3(randf_range(-1, 1), 0.6, 0)) * 0.5 * (1.2 - tone))
+	_phys_add("hand_r", (fl + Vector3(randf_range(-1, 1), 0.6, 0)) * 0.5 * (1.2 - tone))
+
+
+func _target_tone() -> float:
+	var n: String = move.get("name", "")
+	match state:
+		"ko":
+			return 0.15
+		"react":
+			if n == "launch":
+				return 0.2 if move_t > 0.3 and move_t < 1.2 else 0.5
+			if n in ["dazed", "wall_splat"]:
+				return 0.3
+			if n in ["stagger", "guard_break", "parried"]:
+				return 0.42
+			if n == "blockstun":
+				return 0.85
+			return 0.55
+	return 1.0
 
 
 func _update_springs(delta: float) -> void:
-	var a := -spr_chest * 170.0 - spr_chest_v * 13.0
-	spr_chest_v += a * delta
-	spr_chest += spr_chest_v * delta
-	a = -spr_head * 210.0 - spr_head_v * 15.0
-	spr_head_v += a * delta
-	spr_head += spr_head_v * delta
-	a = -spr_hips * 200.0 - spr_hips_v * 16.0
-	spr_hips_v += a * delta
-	spr_hips += spr_hips_v * delta
+	if delta <= 0.0:
+		return
+	var tt := _target_tone()
+	tone = tt if tt < tone else move_toward(tone, tt, delta * 1.6)
+	# inercia: el tronco y la cabeza van con retraso cuando el cuerpo acelera
+	var a := (velocity - _prev_vel) / delta
+	_prev_vel = velocity
+	a.y = 0
+	a = a.limit_length(40.0)
+	var al := global_transform.basis.inverse() * a
+	_phys_add("chest_rot", Vector3(-al.z, 0, al.x) * 1.6 * delta * 60.0 * 0.02)
+	_phys_add("head_rot", Vector3(-al.z, 0, al.x) * 1.2 * delta * 60.0 * 0.02)
+	_phys_add("hips_pos", -al * 0.0006 * delta * 60.0)
+	if state != "attack":
+		_phys_add("hand_l", -al * 0.0012 * delta * 60.0)
+		_phys_add("hand_r", -al * 0.0012 * delta * 60.0)
+	for key in PHYS:
+		if not phys.has(key):
+			phys[key] = {"x": Vector3.ZERO, "v": Vector3.ZERO}
+		var j: Dictionary = phys[key]
+		var k: float = float(PHYS[key].k) * (0.22 + 0.78 * tone)
+		var zeta := 0.42 + 0.3 * tone
+		var c := 2.0 * zeta * sqrt(k)
+		var x: Vector3 = j.x
+		var v: Vector3 = j.v
+		v += (-x * k - v * c) * delta
+		x += v * delta
+		x = x.limit_length(float(PHYS[key].lim))
+		j.x = x
+		j.v = v
 
 
 # ---------------------------------------------------------------------------
@@ -866,9 +966,20 @@ func _update_rig(delta: float) -> void:
 	var lean := Vector3(local_v.z * 3.2, 0, -local_v.x * 2.2)
 	out.spine_rot = (out.spine_rot as Vector3) + lean
 	var breath := sin(time * (2.0 if hp > 40 else 3.2)) * (1.0 if hp > 40 else 2.2)
-	out.chest_rot = (out.chest_rot as Vector3) + spr_chest + Vector3(breath, 0, 0)
-	out.head_rot = (out.head_rot as Vector3) + spr_head
-	out.hips_pos = (out.hips_pos as Vector3) + spr_hips
+	# la cabeza va con retraso respecto a los giros bruscos del pecho (látigo)
+	if delta > 0.0:
+		var cw: Vector3 = ((pose.chest_rot as Vector3) - _prev_chest) / delta
+		_phys_add("head_rot", -(cw - _prev_chest_w) * 0.18)
+		_prev_chest_w = cw
+	_prev_chest = pose.chest_rot
+	out.hips_rot = (out.hips_rot as Vector3) + phys_value("hips_rot")
+	out.spine_rot = (out.spine_rot as Vector3) + phys_value("spine_rot")
+	out.chest_rot = (out.chest_rot as Vector3) + phys_value("chest_rot") + Vector3(breath, 0, 0)
+	out.head_rot = (out.head_rot as Vector3) + phys_value("head_rot")
+	out.hips_pos = (out.hips_pos as Vector3) + phys_value("hips_pos")
+	if state != "attack":
+		out.hand_l = (out.hand_l as Vector3) + phys_value("hand_l")
+		out.hand_r = (out.hand_r as Vector3) + phys_value("hand_r")
 	if state == "dodge" and move.get("name", "") == "dodge" and root_dir.y > -0.5:
 		# slip: la cintura se dobla hacia el lado, la cabeza sale de la línea del golpe
 		var u := clampf(move_t / 0.3, 0.0, 1.0)
@@ -918,6 +1029,7 @@ func _update_rig(delta: float) -> void:
 			f.yaw = yaw + fy[i]
 		elif f.air:
 			f.air = false
+	last_apply = [out, ft[0], ft[1], fy[0], fy[1], pts[0], pts[1]]
 	rig.apply_pose(out, ft[0], ft[1], fy[0], fy[1], pts[0], pts[1], delta)
 
 	if delta > 0.0:
@@ -925,3 +1037,11 @@ func _update_rig(delta: float) -> void:
 			var p: Vector3 = rig.points[k]
 			limb_vel[k] = (p - prev_points.get(k, p)) / delta
 			prev_points[k] = p
+
+
+## Dibuja una pose grabada (repetición del KO).
+func replay_frame(xf: Transform3D, data: Array, delta: float) -> void:
+	global_transform = xf
+	if data.size() == 7:
+		rig.shake_offset = Vector3.ZERO
+		rig.apply_pose(data[0], data[1], data[2], data[3], data[4], data[5], data[6], delta)

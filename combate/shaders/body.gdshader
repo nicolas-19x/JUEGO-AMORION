@@ -26,8 +26,19 @@ uniform float cut_amount = 0.0;
 uniform float cut_side = 1.0;
 uniform float sweat = 0.0;
 uniform float smear = 0.0;
+// estilo de la pieza
+uniform float hair_mode = 0.0;      // 1 pelo (casco que sigue el cráneo), 2 barba
+uniform float wrap_mode = 0.0;      // 1 antebrazo (piel arriba, venda abajo), 2 puño vendado
+uniform float wrap_start = 0.3;
+uniform vec3 skin_color : source_color = vec3(0.7, 0.5, 0.4);
+uniform float folds = 0.0;          // pliegues de tela
+uniform float tear = 0.0;           // la tela se rompe donde se acumulan golpes
+uniform float anat = 0.0;           // 1 pecho, 2 abdomen: musculatura marcada
+uniform float shoe_mode = 0.0;
+uniform vec3 sole_color : source_color = vec3(0.9, 0.88, 0.84);
 
 varying vec3 lp;
+
 
 float hash(vec3 p) { return fract(sin(dot(p, vec3(127.1, 311.7, 74.7))) * 43758.5453); }
 float noise(vec3 p) {
@@ -37,6 +48,12 @@ float noise(vec3 p) {
 		mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), u.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), u.x), u.y), u.z);
 }
 
+float fold_h(vec2 uv, vec3 p) {
+	float n = noise(p * 22.0);
+	return sin(uv.y * 46.0 + n * 3.5 + sin(uv.x * 12.566) * 1.2) * (0.35 + 0.65 * noise(p * 9.0 + 4.0));
+}
+
+
 void vertex() {
 	lp = VERTEX;
 }
@@ -44,6 +61,79 @@ void vertex() {
 void fragment() {
 	vec3 c = albedo;
 	float wet = 0.0;
+	float is_skin = skin;
+	// --- pelo y barba: recortados sobre el cráneo ---
+	if (hair_mode > 0.5) {
+		if (hair_mode < 1.5) {
+			// línea del pelo: alta en la frente, entradas a los lados, patillas
+			float hairline = 0.62 - 0.28 * abs(lp.x) + 0.05 * sin(lp.x * 18.0);
+			bool face = lp.z < -0.05 && lp.y < hairline;
+			bool side = abs(lp.x) > 0.5 && lp.y < 0.12 && lp.z < 0.22;
+			bool nape = lp.y < -0.38 + 0.1 * abs(lp.x);
+			if (face || side || nape) discard;
+		} else {
+			// barba corta: mandíbula, mentón y bigote
+			bool jaw = lp.y < -0.12 - 0.1 * (1.0 - abs(lp.x)) && lp.z < 0.15;
+			bool stache = abs(lp.x) < 0.32 && lp.y > -0.33 && lp.y < -0.2 && lp.z < -0.6;
+			bool keep = jaw || stache;
+			bool mouth = abs(lp.x) < 0.2 && lp.y > -0.46 && lp.y < -0.33 && lp.z < -0.55;
+			bool cheek = false;
+			if (!keep || mouth || cheek) discard;
+		}
+		float strand = noise(vec3(lp.x * 46.0, lp.y * 7.0, lp.z * 46.0));
+		c *= 0.78 + 0.3 * strand;
+	}
+	// --- vendas: bandas cruzadas con costuras y bordes ---
+	if (wrap_mode > 0.5) {
+		bool wrapped = wrap_mode > 1.5 || UV.y > wrap_start;
+		if (wrapped) {
+			float band = fract(UV.y * 16.0 + UV.x * 2.0);
+			float seam = smoothstep(0.0, 0.08, band) * smoothstep(1.0, 0.9, band);
+			c *= 0.78 + 0.22 * seam;
+			c *= 0.92 + 0.12 * noise(lp * 160.0);
+			is_skin = 0.0;
+		} else {
+			c = skin_color;
+			is_skin = 1.0;
+			float edge = smoothstep(wrap_start - 0.05, wrap_start, UV.y);
+			c *= 1.0 - 0.25 * edge;
+		}
+	}
+	// --- pliegues de tela: relieve procedural ---
+	if (folds > 0.0) {
+		float e = 0.004;
+		float h0 = fold_h(UV, lp);
+		float hx = fold_h(UV + vec2(e, 0.0), lp);
+		float hy = fold_h(UV + vec2(0.0, e), lp);
+		vec2 grad = vec2(hx - h0, hy - h0) / e;
+		NORMAL_MAP = normalize(vec3(-grad * 0.004 * folds, 1.0)) * 0.5 + 0.5;
+		c *= 0.9 + 0.1 * h0;
+	}
+	// --- musculatura: surcos del esternón, pectorales, clavículas y abdominales ---
+	if (anat > 0.5) {
+		float front = smoothstep(-0.03, -0.08, lp.z);
+		float g = 0.0;
+		if (anat < 1.5) {
+			g = max(g, (1.0 - smoothstep(0.0, 0.02, abs(lp.x))) * smoothstep(0.04, 0.08, lp.y) * smoothstep(0.28, 0.24, lp.y));
+			float pec = 0.12 + 1.4 * lp.x * lp.x;
+			g = max(g, (1.0 - smoothstep(0.0, 0.028, abs(lp.y - pec))) * smoothstep(0.18, 0.13, abs(lp.x)) * 0.9);
+			float clav = 0.285 - 0.18 * abs(lp.x);
+			g = max(g, (1.0 - smoothstep(0.0, 0.01, abs(lp.y - clav))) * step(0.025, abs(lp.x)) * step(abs(lp.x), 0.15) * 0.6);
+		} else {
+			g = max(g, (1.0 - smoothstep(0.0, 0.016, abs(lp.x))) * smoothstep(-0.06, -0.02, lp.y) * smoothstep(0.22, 0.18, lp.y) * 0.8);
+			for (int k = 0; k < 3; k++) {
+				float yy = 0.17 - float(k) * 0.07;
+				g = max(g, (1.0 - smoothstep(0.0, 0.02, abs(lp.y - yy))) * smoothstep(0.085, 0.05, abs(lp.x)) * 0.55);
+			}
+			g = max(g, (1.0 - smoothstep(0.0, 0.015, abs(abs(lp.x) - 0.1 - lp.y * 0.12))) * step(lp.y, 0.12) * 0.5);
+		}
+		c *= 1.0 - 0.17 * g * front;
+	}
+	// --- zapatilla: suela clara y costura ---
+	if (shoe_mode > 0.5) {
+		if (lp.y < -0.083) c = sole_color;
+		c *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, 0.004, abs(lp.y + 0.079)));
+	}
 	float b = 0.0;
 	for (int i = 0; i < 6; i++) {
 		float d = distance(lp, marks[i].xyz);
@@ -51,7 +141,7 @@ void fragment() {
 		float m = (1.0 - smoothstep(mark_r * 0.2, mark_r, d + n * mark_r * 0.45)) * marks[i].w;
 		b = max(b, m);
 	}
-	if (skin > 0.5) {
+	if (is_skin > 0.5) {
 		float l = dot(c, vec3(0.3, 0.55, 0.15));
 		vec3 red = c * vec3(1.08, 0.58, 0.52);
 		vec3 purple = vec3(0.36, 0.15, 0.26) * (0.7 + 0.5 * l);
@@ -61,12 +151,31 @@ void fragment() {
 		c = mix(c, vec3(0.4, 0.02, 0.03), split * 0.8);
 		wet = max(wet, split);
 	} else {
+		// la tela se rompe donde se acumulan golpes: deja ver la piel de debajo
+		if (tear > 0.5) {
+			float tn = noise(lp * 55.0) * 0.4;
+			if (b > 0.95 + tn) discard;
+			float fray = smoothstep(0.75 + tn, 0.95 + tn, b);
+			c *= 1.0 - 0.45 * fray;
+		}
 		float s = smoothstep(0.38, 0.6, b) * blood_on;
 		c = mix(c, vec3(0.32, 0.02, 0.03), s * 0.88);
 		wet = max(wet, s * 0.45);
 	}
 	if (face_mode > 0.5) {
 		float front = smoothstep(-0.35, -0.75, lp.z);
+		// cuencas de los ojos en sombra, labios y mejillas con más color
+		for (int k = 0; k < 2; k++) {
+			float sx = k == 0 ? -1.0 : 1.0;
+			vec3 dd = lp - vec3(sx * 0.36, 0.1, -0.9);
+			c *= 1.0 - 0.28 * exp(-dot(dd, dd) / 0.03);
+			vec3 ck = lp - vec3(sx * 0.55, -0.15, -0.75);
+			c = mix(c, c * vec3(1.06, 0.88, 0.86), exp(-dot(ck, ck) / 0.05) * 0.6);
+		}
+		float lips = (1.0 - smoothstep(0.0, 0.045, abs(lp.y + 0.38))) * (1.0 - smoothstep(0.16, 0.24, abs(lp.x))) * front;
+		c = mix(c, c * vec3(0.82, 0.58, 0.58), lips * 0.8);
+		float mouth_line = (1.0 - smoothstep(0.0, 0.012, abs(lp.y + 0.375))) * (1.0 - smoothstep(0.14, 0.2, abs(lp.x))) * front;
+		c *= 1.0 - 0.5 * mouth_line;
 		float w = (noise(vec3(lp.y * 7.0, 1.3, 2.1)) - 0.5) * 0.12;
 		// nariz: reguero hacia la barbilla que crece con la hemorragia
 		float top = -0.1;

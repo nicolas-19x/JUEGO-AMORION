@@ -121,9 +121,12 @@ func _environment() -> void:
 	sun.light_energy = 1.55
 	sun.shadow_enabled = true
 	sun.shadow_bias = 0.04
-	sun.shadow_blur = 1.5
+	sun.shadow_blur = 2.0
 	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS
-	sun.directional_shadow_max_distance = 22.0
+	sun.directional_shadow_max_distance = 13.0
+	sun.directional_shadow_split_1 = 0.35
+	sun.directional_shadow_blend_splits = true
+	sun.shadow_normal_bias = 1.2
 	sun.rotation_degrees = Vector3(-24, -38, 0)
 	add_child(sun)
 

@@ -15,6 +15,10 @@ var fov_kick := 0.0
 var cam_yaw := 0.0
 var side := 1.0
 var cine_t := -1.0
+var shot_t := -1.0
+var _shot_pos := Vector3.ZERO
+var _shot_look := Vector3.ZERO
+var replay_mode := false
 var cine_target: Fighter
 var _focus := Vector3.ZERO
 var _dist := 4.0
@@ -41,12 +45,33 @@ func snap() -> void:
 	look_at(_focus, Vector3.UP)
 
 
+static var shake_scale := 1.0
+
+
 func add_trauma(a: float) -> void:
-	trauma = clampf(trauma + a, 0.0, 1.0)
+	trauma = clampf(trauma + a * shake_scale, 0.0, 1.0)
 
 
 func kick_fov(a: float) -> void:
 	fov_kick = minf(fov_kick + a, 10.0)
+
+
+## Plano de remate: corte breve a un ángulo bajo y lateral sobre el impacto.
+func finisher(victim: Fighter, attacker: Fighter) -> void:
+	var line := victim.global_position - attacker.global_position
+	line.y = 0
+	line = line.normalized()
+	var side_v := line.cross(Vector3.UP) * (1.0 if randf() < 0.5 else -1.0)
+	var mid := (victim.global_position + attacker.global_position) * 0.5
+	var pos := mid + side_v * 2.3 - line * 0.6 + Vector3.UP * 0.75
+	var space := get_world_3d().direct_space_state
+	var hit := space.intersect_ray(PhysicsRayQueryParameters3D.create(mid + Vector3.UP, pos, 1 | 8))
+	if hit:
+		side_v = -side_v
+		pos = mid + side_v * 2.3 - line * 0.6 + Vector3.UP * 0.75
+	_shot_pos = pos
+	_shot_look = mid + line * 0.4 + Vector3.UP * 1.0
+	shot_t = 0.0
 
 
 func cinematic(target: Fighter) -> void:
@@ -79,9 +104,20 @@ func update(delta: float) -> void:
 	if not player or not foe:
 		return
 	_t += delta
+	if replay_mode:
+		return
 	if cine_t >= 0.0:
 		_cinematic(delta)
 		return
+	if shot_t >= 0.0:
+		# tiempo real: el plano dura lo mismo aunque haya cámara lenta
+		shot_t += delta / maxf(Engine.time_scale, 0.05)
+		if shot_t < 0.7:
+			var k := clampf(shot_t / 0.08, 0.0, 1.0)
+			_cur_pos = _cur_pos.lerp(_shot_pos, k)
+			_apply(_cur_pos, _shot_look, 46.0, delta)
+			return
+		shot_t = -1.0
 	var d := player.global_position - foe.global_position
 	d.y = 0
 	if d.length() > 0.2:

@@ -1,6 +1,55 @@
 # Estado del prototipo
 
-Versión 0.3.0 · 24 de noviembre de 2026
+Versión 0.4.0 · 24 de noviembre de 2026
+
+## Novedades de la 0.4.0
+
+**Arte de los cuerpos (escultura por código, `scripts/fighter/body_meshes.gd`):**
+- Cada pieza es una malla propia hecha con anillos de sección superelíptica:
+  deltoides, bíceps y tríceps, antebrazo, puño vendado con nudillos, torso en V
+  con pectorales y dorsales, abdomen, pelvis con glúteos, cuello con trapecio,
+  pantalón holgado, zapatillas con suela.
+- Cabeza esculpida: mandíbula, barbilla, pómulos, arco superciliar, cuencas de
+  los ojos, nariz con puente y punta, orejas. Pelo y barba son la misma forma
+  recortada por el shader (línea del pelo con entradas, patillas, barba con
+  bigote): se ajustan al cráneo en vez de ser bolas.
+- Shader: musculatura marcada (esternón, pectorales, clavículas, abdominales),
+  vendas con bandas y costuras, pliegues de tela con relieve, labios, sombra de
+  cuencas, mejillas. La camiseta se rompe donde se acumulan golpes y deja ver la
+  piel; la camiseta y la piel de debajo reciben el mismo golpe.
+- Sombras a 4096 px con alcance ajustado al patio: menos dientes de sierra.
+
+**Física parcial:** un muelle amortiguado por articulación (cadera, columna,
+pecho, cabeza, cadera en posición, manos). Cada golpe aplica el par de giro
+real (punto de contacto × dirección del miembro): un directo a la cara lanza la
+cabeza hacia atrás, un gancho la gira, uno al cuerpo dobla la columna. Inercia:
+el tronco y la cabeza van con retraso al frenar, arrancar o girar (latigazo).
+Tono muscular: firme de pie, flojo al recibir, muy suelto aturdido y en el
+suelo; la cabeza rebota al caer y contra la pared.
+
+**Puntos de contacto corregidos:** los puñetazos apuntaban ~12 cm bajos (al
+cuello); ahora van a la cara, y el punto de impacto se toma de donde está el
+puño, no del eje del cuerpo (mejora física, sangre y moretones).
+
+**Vibración con matices:** 11 patrones de varios pulsos (seco, medio, pesado,
+contragolpe, bloqueo, parada, guardia rota, pared, caída, KO, esquiva), en
+tiempo real aunque haya cámara lenta; recibir vibra algo más que golpear.
+
+**Cámara:** plano de remate (corte lateral bajo + cámara lenta) cuando el
+jugador derriba; repetición del KO a cámara lenta, de lado, con bandas de cine
+y "toca para saltar".
+
+**Ajustes:** en pausa, deslizadores en vivo para pausa de impacto, velocidad
+del juego, sacudida, vibración y ventana de combo (se guardan). En el menú,
+Calidad gráfica Alta/Baja (sombras, brillo, partículas, manchas, antialiasing).
+
+**Verificado:** ~2370 comprobaciones, 0 fallos (incluye física que cede y vuelve
+a reposo, patrón de vibración, plano de remate, grabación y repetición
+completas). Capturas de retrato, primeros planos, secuencias fotograma a
+fotograma de directo y patada giratoria, combate y repetición revisadas.
+**Sin probar en teléfono**: rendimiento y vibración reales pendientes.
+
+
 
 ## Novedades de la 0.3.0
 

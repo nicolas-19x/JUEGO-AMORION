@@ -40,6 +40,8 @@ func _process(_d: float) -> bool:
 	test_new()
 	print("== Combos largos y colisiones")
 	test_combos()
+	print("== Física parcial, vibración, remate de cámara y repetición")
+	test_v4()
 	print("== Combate completo (IA contra jugador guionizado)")
 	for lvl in 3:
 		test_full_fight(lvl)
@@ -461,3 +463,52 @@ func test_combos() -> void:
 	ok(ko_inside, "el cuerpo del KO queda dentro del patio")
 	Engine.time_scale = 1.0
 	main.slowmo_t = 0.0
+
+
+func test_v4() -> void:
+	main.start_fight()
+	main.phase = "fight"
+	main.scripted = true
+	var p: Fighter = main.player
+	var f: Fighter = main.foe
+	_place(p, f, 1.1)
+	# física: un directo a la cara gira la cabeza y afloja el tono muscular
+	p.start_move("cross")
+	var max_head := 0.0
+	var min_tone := 1.0
+	for i in 40:
+		main.sim_step(1.0 / 60.0)
+		max_head = maxf(max_head, f.phys_value("head_rot").length())
+		min_tone = minf(min_tone, f.tone)
+	ok(max_head > 6.0, "la cabeza cede con el impacto (%.1f°)" % max_head)
+	ok(min_tone < 0.7, "el cuerpo se afloja al recibir (tono %.2f)" % min_tone)
+	_run(90)
+	ok(f.phys_value("head_rot").length() < 3.0, "la física vuelve a reposo")
+	var hl: String = root.get_node("Haptics").last
+	ok(hl in ["light", "medium", "heavy", "counter"], "patrón de vibración por golpe (%s)" % hl)
+	# remate de cámara al derribar con la patada giratoria
+	main.scripted = true
+	_place(p, f, 1.1)
+	main.cam.shot_t = -1.0
+	var shot := false
+	p.start_move("spin_kick")
+	p.charging = false
+	main.phase = "fight"
+	for i in 60:
+		main.sim_step(1.0 / 60.0)
+		shot = shot or main.cam.shot_t >= 0.0
+	ok(shot, "derribo del jugador → plano de remate")
+	Engine.time_scale = 1.0
+	main.slowmo_t = 0.0
+	ok(main._rec.size() > 30, "se graban los últimos segundos para la repetición")
+	# repetición: se reproduce sin errores y termina en el resultado
+	main.scripted = false
+	main._start_replay()
+	var steps := 0
+	while main.phase == "replay" and steps < 2000:
+		main._replay_update(1.0 / 60.0)
+		steps += 1
+	ok(main.phase == "result", "la repetición termina y muestra el resultado (%d pasos)" % steps)
+	main.scripted = true
+	main._result_root.visible = false
+	Engine.time_scale = 1.0

@@ -43,46 +43,52 @@ func setup(p: Dictionary) -> void:
 	palette = p
 	_outline = ShaderMaterial.new()
 	_outline.shader = preload("res://shaders/outline.gdshader")
-	_outline.set_shader_parameter("thickness", 0.010)
-	mats["pants"] = _mat(p.pants, 0.85, _outline)
-	mats["wrap"] = _mat(p.wrap, 0.8, _outline)
+	_outline.set_shader_parameter("thickness", 0.009)
+	var bulk: float = p.get("bulk", 1.0)
+	var pants := _mat(p.pants, 0.88, _outline)
+	pants.set_shader_parameter("folds", 1.0)
+	mats["pants"] = pants
 	mats["accent"] = _mat(p.accent, 0.7, _outline)
-	mats["hair"] = _mat(p.hair, 0.7, _outline, 0.15)
-	mats["shoe"] = _mat(p.shoe, 0.6, _outline)
-	mats["dark"] = _mat(Color(0.05, 0.04, 0.04), 0.3, null, 0.0)
-	var shirtless: bool = not p.has("top")
-	var torso := "skin" if shirtless else "top"
+	mats["hair"] = _mat(p.hair, 0.75, null, 0.12)
+	mats["hair"].set_shader_parameter("hair_mode", 1.0)
+	mats["beard"] = _mat(p.hair, 0.8, null, 0.1)
+	mats["beard"].set_shader_parameter("hair_mode", 2.0)
+	mats["brow"] = _mat(p.hair, 0.8, null, 0.0)
+	mats["dark"] = _mat(Color(0.04, 0.03, 0.03), 0.15, null, 0.0)
 
-	_add("pelvis", _cyl(0.145, 0.16, 0.21), "pants", Vector3(1, 1, 0.74))
-	_add("seat", _sphere(1.0), "pants", Vector3(0.155, 0.08, 0.115))
-	_add("sash", _cyl(0.152, 0.16, 0.07), "accent", Vector3(1, 1, 0.78))
-	_add("abdomen", _cyl(0.13, 0.14, 0.24), torso, Vector3(1, 1, 0.72))
-	_add("chest", _cyl(0.205, 0.14, 0.31), torso, Vector3(1, 1, 0.6))
-	_add("traps", _sphere(1.0), torso, Vector3(0.17, 0.06, 0.1))
-	_add("shoulder_l", _sphere(0.072), "skin")
-	_add("shoulder_r", _sphere(0.072), "skin")
-	_add("neck", _cyl(0.048, 0.054, 0.13), "skin")
-	_add("head", _sphere(1.0), "face", Vector3(0.1, 0.122, 0.11))
-	_add("hair", _sphere(1.0), "hair", Vector3(0.112, 0.104, 0.116))
-	_add("nose", _box(Vector3(0.021, 0.042, 0.028)), "skin")
-	_add("mouth", _box(Vector3(0.034, 0.006, 0.01)), "dark")
+	# torso: piel con musculatura; encima, si la lleva, la camiseta (que se rompe)
+	_add("pelvis", BodyMeshes.pelvis(bulk), "pants")
+	_add("sash", _cyl(0.158 * bulk, 0.166 * bulk, 0.07), "accent", Vector3(1, 1, 0.74))
+	_add("abdomen", BodyMeshes.abdomen(bulk), "skin", Vector3.ONE, {"anat": 2.0})
+	_add("chest", BodyMeshes.chest(bulk), "skin", Vector3.ONE, {"anat": 1.0})
+	if p.has("top"):
+		_add("top_abs", BodyMeshes.tank_abdomen(), "tank", Vector3(bulk, 1, bulk))
+		_add("top_chest", BodyMeshes.tank_chest(), "tank", Vector3(bulk, 1, bulk))
+	_add("shoulder_l", _sphere(0.068 * bulk), "skin")
+	_add("shoulder_r", _sphere(0.068 * bulk), "skin")
+	_add("neck", BodyMeshes.neck(bulk), "skin")
+	# cabeza esculpida; pelo y barba son la misma forma, algo mayor, recortada
+	var hm := BodyMeshes.head(p.get("jaw", 1.0))
+	_add("head", hm, "face", Vector3(0.1, 0.122, 0.11))
+	_add("hair", hm, "hair", Vector3(0.1, 0.122, 0.11) * 1.06)
+	if p.get("beard", false):
+		_add("beard", hm, "beard", Vector3(0.1, 0.122, 0.11) * 1.04)
+	_add("nose", BodyMeshes.nose(), "skin")
 	for s in ["l", "r"]:
-		_add("eye_" + s, _sphere(0.011), "dark")
-		_add("brow_" + s, _box(Vector3(0.036, 0.009, 0.014)), "hair")
-		_add("ear_" + s, _sphere(1.0), "skin", Vector3(0.012, 0.024, 0.018))
+		_add("eye_" + s, _sphere(0.0105), "dark")
+		_add("brow_" + s, _box(Vector3(0.038, 0.008, 0.012)), "brow")
+		_add("ear_" + s, BodyMeshes.ear(), "skin")
 		var sw := _add("swell_" + s, _sphere(1.0), "bruise", Vector3(0.026, 0.02, 0.016))
 		sw.visible = false
-	if p.get("beard", false):
-		_add("beard", _sphere(1.0), "hair", Vector3(0.085, 0.065, 0.07))
 	if p.get("bun", false):
-		_add("knot", _sphere(0.042), "hair")
+		_add("knot", _sphere(0.046), "hair_solid")
 	for s in ["l", "r"]:
-		_add("upper_" + s, _cyl(0.058, 0.046, UPPER_ARM), "skin")
-		_add("fore_" + s, _cyl(0.047, 0.04, FOREARM - 0.04), "wrapc")
-		_add("fist_" + s, _sphere(1.0), "wrapc", Vector3(0.042, 0.046, 0.054))
-		_add("thigh_" + s, _cyl(0.09, 0.066, THIGH), "pants")
-		_add("shin_" + s, _cyl(0.066, 0.052, SHIN), "pants")
-		_add("foot_" + s, _box(Vector3(0.1, 0.075, 0.24)), "shoec")
+		_add("upper_" + s, BodyMeshes.upper_arm(bulk), "skin")
+		_add("fore_" + s, BodyMeshes.forearm(bulk), "forearm")
+		_add("fist_" + s, BodyMeshes.fist(), "fist", Vector3.ONE * (0.96 + 0.06 * bulk))
+		_add("thigh_" + s, BodyMeshes.thigh(1.1 * bulk), "pants")
+		_add("shin_" + s, BodyMeshes.shin(1.14 * bulk), "pants")
+		_add("foot_" + s, BodyMeshes.shoe(), "shoe")
 	# cadenas de tela: faja (dos cintas) y cinta de la cabeza
 	_chains.append(_make_chain("sash_a", 4, 0.11, 0.032, "accent"))
 	_chains.append(_make_chain("sash_b", 3, 0.11, 0.028, "accent"))
@@ -102,21 +108,38 @@ func _mat(c: Color, rough: float, outline: Material, rim := 0.3) -> ShaderMateri
 	return m
 
 
-## Material por pieza para piel, cara, moretón y camiseta (cada pieza guarda sus marcas).
+const DAMAGE_KINDS := ["skin", "face", "tank", "forearm", "fist", "shoe"]
+
+
+## Material por pieza (las que reciben daño tienen el suyo propio con sus marcas).
 func _material_for(kind: String) -> ShaderMaterial:
 	match kind:
 		"skin", "face":
-			var m := _mat(palette.skin, 0.5, _outline, 0.32)
+			var m := _mat(palette.skin, 0.48, _outline, 0.3)
 			m.set_shader_parameter("skin", 1.0)
 			if kind == "face":
 				m.set_shader_parameter("face_mode", 1.0)
 			return m
-		"top":
-			return _mat(palette.top, 0.85, _outline)
-		"wrapc":
-			return _mat(palette.wrap, 0.8, _outline)
-		"shoec":
-			return _mat(palette.shoe, 0.6, _outline)
+		"tank":
+			var t := _mat(palette.top, 0.9, null, 0.25)
+			t.set_shader_parameter("tear", 1.0)
+			t.set_shader_parameter("folds", 0.1)
+			return t
+		"forearm", "fist":
+			var w := _mat(palette.wrap, 0.85, _outline)
+			w.set_shader_parameter("wrap_mode", 1.0 if kind == "forearm" else 2.0)
+			w.set_shader_parameter("wrap_start", 0.42)
+			w.set_shader_parameter("skin_color", palette.skin)
+			return w
+		"shoe":
+			var sh := _mat(palette.shoe, 0.55, _outline)
+			sh.set_shader_parameter("shoe_mode", 1.0)
+			sh.set_shader_parameter("sole_color", palette.get("sole", Color(0.88, 0.86, 0.82)))
+			return sh
+		"top_plain":
+			return _mat(palette.top, 0.9, null, 0.25)
+		"hair_solid":
+			return _mat(palette.hair, 0.75, _outline, 0.12)
 		"bruise":
 			var c: Color = (palette.skin as Color).lerp(Color(0.42, 0.18, 0.28), 0.55)
 			var m2 := _mat(c, 0.45, null, 0.2)
@@ -149,24 +172,27 @@ func _box(size: Vector3) -> BoxMesh:
 	return m
 
 
-func _add(part: String, mesh: Mesh, mat: String, scl := Vector3.ONE) -> MeshInstance3D:
+func _add(part: String, mesh: Mesh, mat: String, scl := Vector3.ONE, params := {}) -> MeshInstance3D:
 	var holder := Node3D.new()
 	holder.name = part
 	add_child(holder)
 	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	var m := _material_for(mat)
+	for k in params:
+		m.set_shader_parameter(k, params[k])
 	mi.material_override = m
 	mi.scale = scl
 	if mesh is CylinderMesh:
 		mi.position.y = -(mesh as CylinderMesh).height * 0.5
 	holder.add_child(mi)
 	_parts[part] = holder
-	if mat in ["skin", "face", "top", "wrapc", "shoec"] and not part.begins_with("nose") and not part.begins_with("ear"):
+	if mat in DAMAGE_KINDS and not part.begins_with("nose") and not part.begins_with("ear") and not part.begins_with("shoulder"):
 		var avg := (scl.x + scl.y + scl.z) / 3.0
 		var r := (0.042 if mat == "face" else 0.065) / avg
 		m.set_shader_parameter("mark_r", r)
-		_damage_parts[part] = {"mi": mi, "mat": m, "marks": [], "bloods": [], "r": r}
+		var center := mesh.get_aabb().get_center()
+		_damage_parts[part] = {"mi": mi, "mat": m, "marks": [], "bloods": [], "r": r, "center": center}
 		_push_marks(_damage_parts[part])
 	return mi
 
@@ -239,27 +265,27 @@ func apply_pose(pose: Dictionary, foot_l: Vector3, foot_r: Vector3, foot_yaw_l: 
 	var t_chest := t_spine * Transform3D(euler(pose.chest_rot), CHEST_OFS)
 	var t_head := t_chest * Transform3D(euler(pose.head_rot), NECK_OFS)
 
-	_place("pelvis", t_hips * Transform3D(Basis.IDENTITY, Vector3(0, 0.1, 0)))
-	_place("seat", t_hips * Transform3D(Basis.IDENTITY, Vector3(0, -0.01, 0)))
-	_place("sash", t_hips * Transform3D(Basis.IDENTITY, Vector3(0, 0.125, 0)))
-	_place("abdomen", t_spine * Transform3D(Basis.IDENTITY, Vector3(0, 0.16, 0)))
-	_place("chest", t_chest * Transform3D(Basis.IDENTITY, Vector3(0, 0.27, 0)))
-	_place("traps", t_chest * Transform3D(Basis.IDENTITY, Vector3(0, 0.255, 0)))
-	_place("neck", t_chest * Transform3D(Basis.IDENTITY, Vector3(0, 0.3, 0)))
+	_place("pelvis", t_hips)
+	_place("sash", t_hips * Transform3D(Basis.IDENTITY, Vector3(0, 0.135, 0)))
+	_place("abdomen", t_spine)
+	_place("chest", t_chest)
+	if _parts.has("top_chest"):
+		_place("top_chest", t_chest)
+		_place("top_abs", t_spine)
+	_place("neck", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.08, 0.004)))
 	_place("head", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.12, 0)))
-	_place("hair", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.162, 0.02)))
-	_place("nose", t_head * Transform3D(Basis(Vector3.RIGHT, deg_to_rad(-14)), Vector3(0, 0.104, -0.11)))
-	_place("mouth", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.07, -0.101)))
+	_place("hair", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.122, 0.0)))
+	if _parts.has("beard"):
+		_place("beard", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.12, 0.0)))
+	_place("nose", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.13, -0.1)))
 	for s in ["l", "r"]:
 		var sd := -1.0 if s == "l" else 1.0
-		_place("eye_" + s, t_head * Transform3D(Basis.IDENTITY, Vector3(0.036 * sd, 0.127, -0.094)))
-		_place("brow_" + s, t_head * Transform3D(Basis(Vector3.FORWARD, deg_to_rad(-9.0 * sd)), Vector3(0.037 * sd, 0.146, -0.099)))
-		_place("ear_" + s, t_head * Transform3D(Basis.IDENTITY, Vector3(0.099 * sd, 0.118, 0.006)))
+		_place("eye_" + s, t_head * Transform3D(Basis.IDENTITY, Vector3(0.035 * sd, 0.131, -0.097)))
+		_place("brow_" + s, t_head * Transform3D(Basis(Vector3.FORWARD, deg_to_rad(-10.0 * sd)), Vector3(0.036 * sd, 0.15, -0.103)))
+		_place("ear_" + s, t_head * Transform3D(Basis.IDENTITY, Vector3(0.094 * sd, 0.122, 0.008)))
 		_place("swell_" + s, t_head * Transform3D(Basis.IDENTITY, Vector3(0.041 * sd, 0.118, -0.09)))
-	if _parts.has("beard"):
-		_place("beard", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.062, -0.042)))
 	if _parts.has("knot"):
-		_place("knot", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.235, 0.06)))
+		_place("knot", t_head * Transform3D(Basis.IDENTITY, Vector3(0, 0.235, 0.075)))
 
 	# brazos
 	for s in ["l", "r"]:
@@ -305,11 +331,14 @@ func apply_pose(pose: Dictionary, foot_l: Vector3, foot_r: Vector3, foot_yaw_l: 
 			var pt := shin_dir.slerp(toe_dir, 0.25) if shin_dir.dot(toe_dir) > -0.9 else shin_dir
 			toe_dir = toe_dir.slerp(pt.normalized(), pointed).normalized()
 		var fb := Basis.looking_at(toe_dir, Vector3.UP if abs(toe_dir.y) < 0.95 else Vector3.BACK)
-		_place("foot_" + s, Transform3D(fb, ankle + fb * Vector3(0, -0.035, -0.06)))
+		_place("foot_" + s, Transform3D(fb, ankle))
 		local_points["foot_" + s] = ankle + fb * Vector3(0, -0.02, -0.08)
 		local_points["knee_" + s] = knee
 
 	local_points["head"] = t_head * Vector3(0, 0.12, 0)
+	local_points["neck"] = t_head.origin
+	local_points["spine"] = t_spine.origin
+	local_points["chest_base"] = t_chest.origin
 	local_points["nose"] = t_head * Vector3(0, 0.085, -0.125)
 	local_points["chest"] = t_chest * Vector3(0, 0.08, 0)
 	local_points["hips"] = t_hips.origin
@@ -401,8 +430,7 @@ func add_blood(world_p: Vector3, amount: float, max_dist := 0.35) -> void:
 	var best := ""
 	var best_d := max_dist
 	for part in _damage_parts:
-		var mi: MeshInstance3D = _damage_parts[part].mi
-		var dd := mi.global_position.distance_to(world_p)
+		var dd := _part_center(part).distance_to(world_p)
 		if dd < best_d:
 			best_d = dd
 			best = part
@@ -431,8 +459,7 @@ func add_mark(world_p: Vector3, amount: float, gear_only := false) -> String:
 		var gear: bool = part.begins_with("fist") or part.begins_with("fore") or part.begins_with("foot")
 		if gear != gear_only:
 			continue
-		var mi: MeshInstance3D = _damage_parts[part].mi
-		var dd := mi.global_position.distance_to(world_p)
+		var dd := _part_center(part).distance_to(world_p)
 		if part == "head":
 			dd -= 0.04
 		if dd < best_d:
@@ -440,6 +467,20 @@ func add_mark(world_p: Vector3, amount: float, gear_only := false) -> String:
 			best = part
 	if best == "" or best_d > 0.45:
 		return ""
+	# la camiseta y la piel de debajo reciben el mismo golpe
+	var layer := {"top_chest": "chest", "top_abs": "abdomen", "chest": "top_chest", "abdomen": "top_abs"}
+	if layer.has(best) and _damage_parts.has(layer[best]):
+		_mark_part(layer[best], world_p, amount)
+	_mark_part(best, world_p, amount)
+	return best
+
+
+func _part_center(part: String) -> Vector3:
+	var d: Dictionary = _damage_parts[part]
+	return (d.mi as MeshInstance3D).global_transform * (d.center as Vector3)
+
+
+func _mark_part(best: String, world_p: Vector3, amount: float) -> void:
 	var d: Dictionary = _damage_parts[best]
 	var mi: MeshInstance3D = d.mi
 	var local: Vector3 = mi.global_transform.affine_inverse() * world_p
@@ -464,7 +505,6 @@ func add_mark(world_p: Vector3, amount: float, gear_only := false) -> String:
 			marks.remove_at(low)
 		marks.append(Vector4(local.x, local.y, local.z, minf(1.2, amount)))
 	_push_marks(d)
-	return best
 
 
 func update_face(sweat: float) -> void:

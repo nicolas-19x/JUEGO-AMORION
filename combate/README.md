@@ -10,7 +10,9 @@ está puesto en que cada golpe se sienta bien.
 
 ## Estado
 
-**Versión 0.3.0.** Combate rediseñado para que golpear se sienta bien: botones
+**Versión 0.4.0.** Cuerpos esculpidos (anatomía, cara, pelo, barba, ropa que
+se rompe), física parcial en las reacciones, vibración con matices, plano de
+remate y repetición del KO, y ajustes de combate en vivo. Antes, en la 0.3.0: Combate rediseñado para que golpear se sienta bien: botones
 separados de puño, patada, defensa y esquiva; series largas fluidas; reacciones
 sin destello blanco; colisiones limpias; sangre mucho más presente.
 Antes, en la 0.2.0: Luchadores callejeros con cara, piel y

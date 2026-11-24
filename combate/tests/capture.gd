@@ -52,6 +52,7 @@ func _process(_delta: float) -> bool:
 					f.reset(Vector3(0, 0, -0.9), Vector3(0, 0, 1))
 					if mv.begins_with("hit") or mv in ["stagger", "launch", "ko", "wall_splat", "dazed", "parried", "blockstun", "clinched"]:
 						p.start_reaction(mv, f, 1.0, 1.0)
+						f.start_reaction(mv, p, 1.0, 1.0)
 					elif mv == "guard":
 						p.guard_w = 1.0
 					elif mv == "stance":
@@ -61,16 +62,89 @@ func _process(_delta: float) -> bool:
 				for i in 8:
 					p.move_t = t
 					p.inert_t = 99.0
+					if not f.move.is_empty():
+						f.move_t = t
+						f.inert_t = 99.0
 					p._update_rig(0.016)
 					f._update_rig(0.016)
 				var ang := float(args[4]) if args.size() > 4 else 90.0
-				var c: Vector3 = p.global_position + Vector3(0, 1.0, 0)
+				var face := args.size() > 5 and args[5] == "face"
+				var who = f if args.size() > 6 and args[6] == "foe" else p
+				var c: Vector3 = who.rig.points.head if face else p.global_position + Vector3(0, 1.0, 0)
 				var cam: Camera3D = main.cam
-				cam.global_position = c + Basis(Vector3.UP, deg_to_rad(ang)) * Vector3(0, 0.2, 3.0)
+				var base_yaw: float = who.yaw if face else 0.0
+				cam.global_position = c + Basis(Vector3.UP, base_yaw + deg_to_rad(ang)) * (Vector3(0, 0.05, -0.75) if face else Vector3(0, 0.2, 3.0))
 				cam.look_at(c, Vector3.UP)
 				cam.fov = 50
 				if frame == 12:
-					_shot("pose_%s_%s_%d" % [mv, args[3], int(ang)])
+					_shot("pose_%s_%s_%d%s" % [mv, args[3], int(ang), ("_" + str(args[6]) if args.size() > 6 else "")])
+					return true
+		"seq":
+			# secuencia de un golpe: <movimiento> <ángulo> ; cada 3 fotogramas desde el inicio
+			if frame == 3:
+				main.start_fight()
+				main.phase = "fight"
+				main.scripted = true
+				main.set_physics_process(false)
+				main.touch.visible = false
+				main.hud.visible = false
+				main._hint.visible = false
+				main._banner.visible = false
+				main.player.reset(Vector3(0, 0, 0.55), Vector3(0, 0, -1))
+				main.foe.reset(Vector3(0, 0, -0.55), Vector3(0, 0, 1))
+				for i in 20:
+					main.sim_step(1.0 / 60.0)
+				main.player.start_move(args[2])
+				main.player.charging = false
+			if frame > 3:
+				main.sim_step(1.0 / 60.0)
+				var ang := float(args[3]) if args.size() > 3 else 90.0
+				var c: Vector3 = (main.player.global_position + main.foe.global_position) * 0.5 + Vector3(0, 1.1, 0)
+				var cam: Camera3D = main.cam
+				cam.global_position = c + Basis(Vector3.UP, deg_to_rad(ang)) * Vector3(0, 0.15, 3.2)
+				cam.look_at(c, Vector3.UP)
+				cam.fov = 45
+				var every := int(args[4]) if args.size() > 4 else 3
+				if (frame - 4) % every == 0 and frame < 4 + every * 16:
+					_shot("seq_%s_%02d" % [args[2], (frame - 4) / every])
+				if frame >= 4 + every * 16:
+					return true
+		"pause":
+			if frame == 3:
+				main.start_fight()
+				main._set_phase("fight")
+				main._hint.modulate.a = 0.0
+			if frame == 30:
+				main._toggle_pause()
+			if frame == 36:
+				_shot("pause")
+				return true
+		"art":
+			# retrato: ambos luchadores, sin interfaz, desde varios ángulos
+			if frame == 3:
+				main.start_fight()
+				main.paused = true
+				main.touch.visible = false
+				main.hud.visible = false
+				main._hint.modulate.a = 0.0
+				main._banner.modulate.a = 0.0
+				main.player.reset(Vector3(-0.55, 0, 0), Vector3(-0.55, 0, 3))
+				main.foe.reset(Vector3(0.55, 0, 0), Vector3(0.55, 0, 3))
+			if frame >= 4:
+				for f in [main.player, main.foe]:
+					f.guard_w = float(args[3]) if args.size() > 3 else 0.0
+					f._update_rig(0.016)
+				var ang := float(args[2]) if args.size() > 2 else 0.0
+				var c := Vector3(0, 1.0, 0)
+				var close := args.size() > 4 and args[4] == "close"
+				var cam: Camera3D = main.cam
+				var dist := 1.3 if close else 3.4
+				var tgt := c + (Vector3(0, 0.55, 0) if close else Vector3.ZERO)
+				cam.global_position = tgt + Basis(Vector3.UP, deg_to_rad(ang)) * Vector3(0, 0.15, dist)
+				cam.look_at(tgt, Vector3.UP)
+				cam.fov = 40
+				if frame == 10:
+					_shot("art_%s_%s%s" % [args[2] if args.size() > 2 else "0", args[3] if args.size() > 3 else "0", "_close" if close else ""])
 					return true
 		"damage":
 			# primeros planos con heridas: cara y torso tras un combate duro
@@ -151,9 +225,11 @@ func _process(_delta: float) -> bool:
 					main._on_kick_up()
 				if frame % 15 == 0:
 					_shot("fight_%04d" % frame)
-				if main.phase == "ko" and frame % 12 == 0:
+				if (main.phase == "ko" or main.phase == "replay") and frame % 8 == 0:
 					_shot("ko_%04d" % frame)
-				if frame > 900 or (main.phase == "result" and main.phase_t > 0.5):
+				if main.cam.shot_t >= 0.0 and frame % 3 == 0:
+					_shot("shot_%04d" % frame)
+				if frame > 1400 or (main.phase == "result" and main.phase_t > 0.5):
 					_shot("fight_end")
 					return true
 	return false
