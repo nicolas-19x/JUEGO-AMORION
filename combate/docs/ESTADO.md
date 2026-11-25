@@ -1,6 +1,23 @@
 # Estado del prototipo
 
-Versión 0.4.0 · 24 de noviembre de 2026
+Versión 0.5.0 · 25 de noviembre de 2026
+
+## Novedades de la 0.5.0
+
+**Audio completo con ElevenLabs** (detalle en [AUDIO.md](AUDIO.md)): 74 efectos y voces
+en bancos con variantes que no se repiten (golpes por zona y fuerza, bloqueo, parada,
+whooshes de puño y de patada, pasos, caídas, pared, KO), voces de los luchadores con
+tono distinto (esfuerzo, grito, quejido, «sin aire», escupir sangre, respiración agitada
+con poca vida), locutor en español («¡Combate!», «Victoria», «Derrota»), gong y stings,
+música de menú y de combate con fundido entre ellas y *ducking* en los golpes grandes, y
+ambiente de azotea. Los golpes llevan debajo una base grave sintetizada.
+
+**Verificado:** ~2400 comprobaciones, 0 fallos (incluye que todos los bancos de audio
+carguen completos, que ninguna variante se repita dos veces seguidas y que un hablante no
+se pise). Niveles medidos con LUFS: música ≈ −27 LUFS efectivos, golpes y voces ≈ −22.
+**No escuchado por nadie todavía**, y sin probar en teléfono.
+
+## Novedades de la 0.4.0 (anterior)
 
 ## Novedades de la 0.4.0
 

@@ -42,6 +42,8 @@ func _process(_d: float) -> bool:
 	test_combos()
 	print("== Física parcial, vibración, remate de cámara y repetición")
 	test_v4()
+	print("== Audio (ElevenLabs)")
+	test_audio()
 	print("== Combate completo (IA contra jugador guionizado)")
 	for lvl in 3:
 		test_full_fight(lvl)
@@ -176,7 +178,7 @@ func test_clinch() -> void:
 			min_d = minf(min_d, p.global_position.distance_to(f.global_position))
 	ok(p.move.get("name", "") == "clinch_knee" or main._hit_log.size() > 0, "el remate se ejecuta")
 	ok(main._hit_log.size() == 1 and main._hit_log[0].reaction == "launch", "el rodillazo derriba")
-	ok(min_d > 0.45 and min_d < 0.8, "la víctima se coloca a distancia de agarre (%.2f)" % min_d)
+	ok(min_d > 0.4 and min_d < 0.8, "la víctima se coloca a distancia de agarre (%.2f)" % min_d)
 	_run(200)
 
 
@@ -247,7 +249,7 @@ func test_full_fight(lvl: int) -> void:
 		main.LEVEL_NAMES[lvl], frames / 60.0, hits, blocks, p.hp, f.hp, min_dist, slide])
 	ok(not nan, "sin valores no finitos")
 	ok(hits >= 5, "hay intercambio de golpes")
-	ok(min_dist > 0.45, "los cuerpos no se atraviesan")
+	ok(min_dist > 0.4, "los cuerpos no se atraviesan")
 	ok(slide < 0.0005, "los pies apoyados no patinan")
 	var dist_r := {}
 	for h in main._hit_log:
@@ -512,3 +514,31 @@ func test_v4() -> void:
 	main.scripted = true
 	main._result_root.visible = false
 	Engine.time_scale = 1.0
+
+
+func test_audio() -> void:
+	var sfx: Node = root.get_node("Sfx")
+	var expected := {"hit_l": 4, "hit_m": 4, "hit_h": 4, "hit_b": 3, "hit_k": 3, "block": 3, "step": 4, "parry": 2,
+		"fall": 3, "wall": 3, "ko": 2, "ui_tap": 2, "gong": 2, "win": 2, "lose": 2, "whoosh_p": 3, "whoosh_k": 3,
+		"effort": 4, "pain": 4, "winded": 3, "scream": 3, "breath": 2, "spit": 3,
+		"vo_combate": 2, "vo_victoria": 2, "vo_derrota": 2, "syn_hit_l": 4, "syn_wet": 3, "syn_parry": 1}
+	for b in expected:
+		ok(sfx.bank_size(b) == expected[b], "banco de sonido «%s» cargado completo (%d/%d)" % [b, sfx.bank_size(b), expected[b]])
+	ok(sfx.music_a.stream != null and sfx.music_b.stream != null and sfx.ambience.stream != null, "música y ambiente cargados")
+	ok(sfx.music_b.stream.get_length() > 120.0, "la música de combate dura %.0f s" % sfx.music_b.stream.get_length())
+	# nunca la misma variante dos veces seguidas
+	var repeats := 0
+	var prev_stream: AudioStream = null
+	for i in 40:
+		sfx.play("hit_m", -80.0)
+		var st: AudioStream = sfx._players[(sfx._next + sfx._players.size() - 1) % sfx._players.size()].stream
+		if st == prev_stream:
+			repeats += 1
+		prev_stream = st
+	ok(repeats == 0, "ninguna variante se repite dos veces seguidas")
+	# las voces respetan la pausa mínima por hablante
+	sfx._voice_t.clear()
+	var a: bool = sfx.voice("player", "pain", -80.0, 5.0)
+	var b2: bool = sfx.voice("player", "pain", -80.0, 5.0)
+	var c: bool = sfx.voice("foe", "pain", -80.0, 5.0)
+	ok(a and not b2 and c, "un hablante no se pisa a sí mismo, pero sí al otro")

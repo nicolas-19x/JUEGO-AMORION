@@ -10,7 +10,9 @@ está puesto en que cada golpe se sienta bien.
 
 ## Estado
 
-**Versión 0.4.0.** Cuerpos esculpidos (anatomía, cara, pelo, barba, ropa que
+**Versión 0.5.0: audio completo con ElevenLabs** (golpes, voces de los luchadores,
+locutor, música de menú y de combate, ambiente; ver [docs/AUDIO.md](docs/AUDIO.md)).
+Antes, en la 0.4.0: Cuerpos esculpidos (anatomía, cara, pelo, barba, ropa que
 se rompe), física parcial en las reacciones, vibración con matices, plano de
 remate y repetición del KO, y ajustes de combate en vivo. Antes, en la 0.3.0: Combate rediseñado para que golpear se sienta bien: botones
 separados de puño, patada, defensa y esquiva; series largas fluidas; reacciones
@@ -70,7 +72,10 @@ arm64-v8a + armeabi-v7a.
 
 ## Sonido
 
-Todo sintetizado y original: `python3 tools/gen_audio.py assets/audio`.
+Efectos, voces y música generados con ElevenLabs (`assets/audio/eleven`, procesados con
+`tools/process_audio.py`); la capa grave bajo los golpes está sintetizada
+(`python3 tools/gen_audio.py assets/audio`). Detalles y licencia en
+[docs/AUDIO.md](docs/AUDIO.md).
 
 ## Documentación
 

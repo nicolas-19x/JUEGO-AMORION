@@ -131,7 +131,8 @@ func _physics_process(delta: float) -> void:
 			if phase_t > 1.5:
 				_set_phase("fight")
 				_banner_show("¡COMBATE!", 0.7)
-				Sfx.play("ui_go", -4.0, 1.0, 0.0)
+				Sfx.play("gong", -3.0, 1.0, 0.0)
+				Sfx.announcer("vo_combate", -2.0)
 		"replay":
 			_replay_update(delta)
 			return
@@ -390,10 +391,42 @@ func _check_hits(a: Fighter, b: Fighter, delta: float) -> void:
 	_on_hit(info, lv)
 
 
+## Audio de un impacto: banco según zona y fuerza, base grave sintetizada,
+## capa húmeda si hay sangre, y la reacción vocal de quien lo recibe.
+func _hit_audio(info: Dictionary, lvl: int) -> void:
+	var victim: Fighter = info.victim
+	var region: String = info.get("region", "body")
+	var bank := "hit_l" if lvl <= 1 else ("hit_m" if lvl == 2 else "hit_h")
+	if region == "legs":
+		bank = "hit_k"
+	elif region == "body" and lvl <= 3:
+		bank = "hit_b"
+	if info.move == "shove":
+		bank = "hit_b"
+	var db := -3.0 + minf(lvl, 4) * 0.8
+	Sfx.play(bank, db, 1.0 + (0.04 if victim == foe else -0.03), 0.05)
+	var syn := "syn_hit_l" if lvl <= 1 else ("syn_hit_m" if lvl == 2 else "syn_hit_h")
+	Sfx.play(syn, -14.0 + lvl * 1.5, 1.0, 0.08)
+	if lvl >= 2 and FighterRig.blood_mode > 0 and info.move != "shove":
+		Sfx.play("syn_wet", -11.0 + lvl * 2.0, 1.0, 0.1)
+	if lvl >= 4 or info.get("counter", false):
+		Sfx.duck(-5.0, 0.35, 0.8)
+	# voz de quien recibe el golpe
+	var who := "player" if victim == player else "foe"
+	if info.move == "shove":
+		return
+	if region == "body" and lvl >= 2:
+		Sfx.voice(who, "winded" if lvl >= 3 else "pain", -4.0, 0.18)
+	elif region == "legs":
+		Sfx.voice(who, "pain", -5.0, 0.18, 0.9)
+	elif lvl >= 2 or randf() < 0.55:
+		Sfx.voice(who, "pain", -4.0 + minf(lvl, 4) * 0.5, 0.18)
+
+
 func _on_evade(who: Fighter, attacker: Fighter) -> void:
 	attacker.evaded = true
 	who.counter_t = 0.75
-	Sfx.play("whoosh", -4.0, 0.8)
+	Sfx.play("whoosh_p", -3.0, 0.8)
 	if who == player:
 		Haptics.play("evade")
 	cam.kick_fov(2.0)
@@ -405,6 +438,7 @@ func _on_evade(who: Fighter, attacker: Fighter) -> void:
 
 func _on_guard_crushed(who: Fighter) -> void:
 	Sfx.play("hit_h", -6.0, 0.8)
+	Sfx.voice("player" if who == player else "foe", "winded", -3.0, 0.1)
 	cam.add_trauma(0.3)
 	if who == foe:
 		_flash_text("GUARDIA ROTA")
@@ -436,12 +470,15 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 		"parry":
 			fx.impact(info.point, dir, level, "parry")
 			Sfx.play("parry", -2.0)
+			Sfx.play("syn_parry", -10.0)
 			cam.add_trauma(0.25)
 			cam.kick_fov(3.0)
 			Haptics.play("parry", info.victim != player)
 		"block":
 			fx.impact(info.point, dir, level, "block")
 			Sfx.play("block", -4.0 + level)
+			Sfx.play("syn_block", -13.0)
+			Sfx.voice("player" if info.victim == player else "foe", "effort", -9.0, 0.3, 0.9)
 			cam.add_trauma(0.08 + 0.04 * level)
 			Haptics.play("block", info.victim == player)
 		"guard_break":
@@ -449,6 +486,7 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 			fx.impact(info.point, dir, 2, "hit")
 			Sfx.play("block", 0.0, 0.8)
 			Sfx.play("hit_m", -4.0)
+			Sfx.play("syn_hit_h", -10.0)
 			cam.add_trauma(0.35)
 			cam.kick_fov(3.0)
 			Haptics.play("guard_break", info.victim == player)
@@ -462,10 +500,7 @@ func _on_hit(info: Dictionary, lv: Vector3) -> void:
 				Engine.time_scale = 0.3
 				slowmo_t = 0.45
 				cam.kick_fov(6.0)
-			var bank := "hit_l" if lvl <= 1 else ("hit_m" if lvl == 2 else "hit_h")
-			Sfx.play(bank, -2.0 + lvl, 1.0 + (0.05 if info.victim == foe else -0.04))
-			if lvl >= 2 and FighterRig.blood_mode > 0 and info.move != "shove":
-				Sfx.play("wet", -10.0 + lvl * 2.0, 1.0, 0.1)
+			_hit_audio(info, lvl)
 			cam.add_trauma([0.0, 0.14, 0.22, 0.38, 0.5, 0.6][clampi(lvl, 0, 5)])
 			if lvl >= 3:
 				cam.kick_fov(2.5 + lvl)
@@ -499,6 +534,7 @@ func _blood_for_hit(info: Dictionary, dir: Vector3, lvl: int) -> void:
 		if (lvl >= 3 or info.get("counter", false) or info.reaction == "ko") and victim.bleed > 0.1:
 			var mouth: Vector3 = victim.rig.points.get("nose", info.point) + Vector3.DOWN * 0.05
 			fx.spit(mouth, d)
+			Sfx.voice("player" if victim == player else "foe", "spit", -3.0, 0.5)
 	elif region == "body" and lvl >= 2:
 		fx.blood(info.point, d, (0.2 + lvl * 0.2) * k)
 		if victim.body_dmg > 25.0 and randf() < 0.5:
@@ -507,7 +543,18 @@ func _blood_for_hit(info: Dictionary, dir: Vector3, lvl: int) -> void:
 		fx.blood(info.point, d, 2.6 * k)
 
 
+var _breath_at := {}
+
+
 func _events(f: Fighter) -> void:
+	# respiración agitada cuando le queda poca vida (más seguida y fuerte cuanto peor)
+	if phase == "fight" and f.state != "ko" and f.hp < f.max_hp * 0.4 and f.freeze <= 0.0:
+		var now := Time.get_ticks_msec() / 1000.0
+		if now >= float(_breath_at.get(f, 0.0)):
+			var worse := clampf(1.0 - f.hp / (f.max_hp * 0.4), 0.0, 1.0)
+			_breath_at[f] = now + lerpf(7.5, 4.5, worse)
+			Sfx.voice("player" if f == player else "foe", "breath", -15.0 + worse * 6.0, 1.0)
+
 	# goteo de sangre de nariz y ceja
 	if f.bleed > 0.08 and FighterRig.blood_mode > 0:
 		var t: float = _drip_t.get(f, 0.0) - get_physics_process_delta_time()
@@ -532,7 +579,8 @@ func _events(f: Fighter) -> void:
 	if (n == "launch" or n == "ko") and f.get_meta("fell_at", -1.0) != f.move_t:
 		var prev: float = f.get_meta("prev_t", 0.0)
 		if prev < 0.52 and f.move_t >= 0.52:
-			Sfx.play("fall", -3.0)
+			Sfx.play("fall", -2.0)
+			Sfx.play("syn_fall", -9.0)
 			fx.dust(f.rig.points.hips, 14, 1.4)
 			cam.add_trauma(0.22)
 			Haptics.play("fall", f == player)
@@ -592,15 +640,25 @@ func _keep_inside(f: Fighter) -> void:
 func _on_footstep(f: Fighter, strength: float) -> void:
 	if phase == "menu":
 		return
-	Sfx.play("step", -24.0 + strength * 6.0, 1.0, 0.12)
+	Sfx.play("step", -22.0 + strength * 6.0, 1.0, 0.12)
 
 
-func _on_whoosh(_f: Fighter, kind: int) -> void:
-	Sfx.play("whoosh", -9.0 + kind * 2.0, 1.0 - kind * 0.08)
+func _on_whoosh(f: Fighter, kind: int) -> void:
+	Sfx.play("whoosh_k" if kind >= 2 else "whoosh_p", -7.0 + kind * 2.0, 1.0 - kind * 0.05)
+	# esfuerzo al golpear: grito en los golpes fuertes, soplido en los demás
+	var who := "player" if f == player else "foe"
+	var mv: String = f.move.get("name", "")
+	if mv in ["spin_kick", "push_kick", "uppercut", "clinch_knee"]:
+		Sfx.voice(who, "scream", -3.0, 0.4)
+	elif f.string_n > 2 or randf() < 0.6:
+		Sfx.voice(who, "effort", -6.0, 0.3)
 
 
 func _on_wall(f: Fighter, point: Vector3, strength: float) -> void:
 	Sfx.play("wall", 0.0)
+	Sfx.play("syn_wall", -8.0)
+	Sfx.voice("player" if f == player else "foe", "winded", -2.0, 0.1)
+	Sfx.duck(-7.0, 0.5, 1.0)
 	fx.dust(point, 20, 1.6)
 	if FighterRig.blood_mode > 0:
 		fx.wall_stain(point + Vector3.DOWN * 0.15, f.global_transform.basis.z, (0.4 + f.bleed * 0.8) * (0.5 if FighterRig.blood_mode == 1 else 1.0))
@@ -620,7 +678,9 @@ func _on_ko(who: Fighter) -> void:
 	Engine.time_scale = 0.3
 	slowmo_t = 1.1
 	Sfx.play("ko", 0.0)
-	Sfx.set_drums(-80.0, 1.2)
+	Sfx.play("syn_ko", -8.0)
+	Sfx.voice("player" if who == player else "foe", "pain", -2.0, 0.0, 0.85)
+	Sfx.set_music("off", 1.2)
 	cam.cinematic(who)
 	Haptics.play("ko", who == player)
 	touch.enabled = false
@@ -656,7 +716,7 @@ func _enter_menu() -> void:
 	_pause_root.visible = false
 	touch.visible = false
 	hud.visible = false
-	Sfx.set_drums(-80.0, 0.5)
+	Sfx.set_music("menu", 1.2)
 
 
 func _menu_update(delta: float) -> void:
@@ -702,7 +762,7 @@ func start_fight() -> void:
 	_set_phase("intro")
 	_banner_show("LUZ  vs  CENIZA", 1.3)
 	Sfx.play("ui_tap", -6.0, 1.0, 0.0)
-	Sfx.set_drums(-17.0, 2.0)
+	Sfx.set_music("combat", 2.2)
 	if not _shown_hint:
 		_shown_hint = true
 		_hint.text = "Machaca GOLPE para encadenar puños · PATADA en mitad de la serie la remata · Hacia el rival + PATADA: patada frontal · Atrás + GOLPE: empujón\nDEFENSA: mantener / justo a tiempo = parada · ESQUIVA: si el golpe te roza, ¡CONTRA!"
@@ -716,6 +776,9 @@ func _show_result() -> void:
 	_set_phase("result")
 	_result_root.visible = true
 	var won := foe.hp <= 0.0
+	Sfx.play("win" if won else "lose", -2.0, 1.0, 0.0)
+	Sfx.announcer("vo_victoria" if won else "vo_derrota", -1.0)
+	Sfx.set_music("menu", 3.0)
 	(_result_root.get_node("Title") as Label).text = "VICTORIA" if won else "DERROTA"
 	(_result_root.get_node("Sub") as Label).text = "Ceniza ha caído." if won else "Luz ha caído."
 
