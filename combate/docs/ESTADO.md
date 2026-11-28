@@ -1,8 +1,36 @@
 # Estado del prototipo
 
-Versión 0.5.0 · 25 de noviembre de 2026
+Versión 0.6.0 · 28 de noviembre de 2026
 
-## Novedades de la 0.5.0
+## Novedades de la 0.6.0
+
+**Nico, modelo 3D importado, sustituye a Luz como jugador** (`assets_src/nico.glb`).
+El GLB no traía esqueleto ni animaciones (solo malla con color por vértice), así que:
+- `tools/model_prep.py` une sus 50 mallas, lo gira para mirar al frente, lo reduce de
+  ~178 000 a ~33 600 vértices (agrupación por rejilla), mide sus articulaciones sobre la
+  nube de puntos y le pone un esqueleto de 16 huesos con las mismas piezas que el rig
+  (caderas, columna, pecho, cabeza, brazo, antebrazo, mano, muslo, espinilla, pie), con
+  pesos suaves en las articulaciones. Cada hueso estira o encoge el modelo a lo largo de su
+  eje para encajar en las medidas del rig: las piernas del modelo son más cortas (×1,28),
+  el tronco algo más largo (×0,86).
+- `tools/build_model.gd` lo convierte en `assets/characters/nico/nico.res`.
+- El rig mueve el esqueleto con las mismas poses, golpes, IK y física parcial que antes:
+  el combate no cambia (mismas distancias y puntos de impacto).
+- Shader propio (`shaders/model.gdshader`): moretones en la piel, sangre que empapa la ropa,
+  nariz, labio y ceja que sangran, ojo amoratado, regueros; todo pegado al cuerpo.
+
+**Limitaciones honestas:** pesos calculados por zonas (no pintados a mano): la axila y la
+cadera pueden deformarse raro en poses extremas; las manos son abiertas (no hay puño); el
+pelo es el casquete del modelo; las piernas quedan más largas que en el original. El rival
+(Ceniza) sigue siendo el cuerpo procedimental.
+
+**Verificado:** 2412 comprobaciones, 0 fallos (nuevas: 16 huesos enlazados, articulaciones
+del modelo coinciden con el rig a menos de 1,2 cm durante golpes y patadas, marcas de daño
+en la altura correcta, revancha limpia). Capturas de guardia, directo, patada circular,
+reacción, KO y daño revisadas. **Sin probar en teléfono** (malla de 33 600 vértices con
+contorno: el rendimiento real está por medir).
+
+## Novedades de la 0.5.0 (anterior)
 
 **Audio completo con ElevenLabs** (detalle en [AUDIO.md](AUDIO.md)): 74 efectos y voces
 en bancos con variantes que no se repiten (golpes por zona y fuerza, bloqueo, parada,

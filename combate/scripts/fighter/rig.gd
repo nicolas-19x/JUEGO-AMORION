@@ -35,6 +35,19 @@ static var blood_mode := 2   # 0 sin sangre, 1 reducida, 2 normal
 var _all_mats: Array[ShaderMaterial] = []
 var _damage_parts := {}      # parte → {mi, mat, marks: Array[Vector4], r}
 var _outline: ShaderMaterial
+# modelo importado (opcional): malla con esqueleto que sigue a las mismas piezas del rig
+const MODEL_BONES := ["hips", "spine", "chest", "head", "upper_l", "fore_l", "hand_l", "upper_r", "fore_r",
+	"hand_r", "thigh_l", "shin_l", "foot_l", "thigh_r", "shin_r", "foot_r"]
+const MODEL_SEG := [Vector3(0, 0.12, 0), Vector3(0, 0.2, 0), Vector3(0, 0.25, 0), Vector3(0, 0.22, 0),
+	Vector3(0, -0.29, 0), Vector3(0, -0.27, 0), Vector3(0, -0.09, 0), Vector3(0, -0.29, 0), Vector3(0, -0.27, 0),
+	Vector3(0, -0.09, 0), Vector3(0, -0.44, 0), Vector3(0, -0.44, 0), Vector3(0, -0.03, -0.14),
+	Vector3(0, -0.44, 0), Vector3(0, -0.44, 0), Vector3(0, -0.03, -0.14)]
+var model_skel: Skeleton3D = null
+var model_mesh: MeshInstance3D = null
+var _model_mat: ShaderMaterial
+var _model_binds: Array[Transform3D] = []
+var _model_marks: Array = []
+var _model_bloods: Array = []
 var face := {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0, "smear": 0.0}
 var _sweat := 0.0
 
@@ -93,6 +106,76 @@ func setup(p: Dictionary) -> void:
 	_chains.append(_make_chain("sash_a", 4, 0.11, 0.032, "accent"))
 	_chains.append(_make_chain("sash_b", 3, 0.11, 0.028, "accent"))
 	_chains.append(_make_chain("band", 4, 0.1, 0.022, "accent"))
+	if p.has("model"):
+		_setup_model(p.model)
+
+
+## Sustituye el cuerpo procedimental por un modelo con esqueleto (tools/model_prep.py).
+## Las piezas procedimentales siguen existiendo (ocultas): el combate no cambia.
+func _setup_model(path: String) -> void:
+	var mesh: ArrayMesh = load(path)
+	if mesh == null:
+		push_warning("modelo no encontrado: " + path)
+		return
+	for part in _parts:
+		(_parts[part] as Node3D).visible = false
+	for ch in _chains:
+		for h in ch.nodes:
+			(h as Node3D).visible = false
+	model_skel = Skeleton3D.new()
+	model_skel.name = "Model"
+	add_child(model_skel)
+	var skin := Skin.new()
+	var bones: Array = mesh.get_meta("bones")
+	_model_binds.clear()
+	for i in bones.size():
+		var b: Dictionary = bones[i]
+		model_skel.add_bone(b.name)
+		var o := Vector3(b.origin[0], b.origin[1], b.origin[2])
+		var rows: Array = b.basis
+		var basis := Basis(Vector3(rows[0][0], rows[1][0], rows[2][0]), Vector3(rows[0][1], rows[1][1], rows[2][1]),
+			Vector3(rows[0][2], rows[1][2], rows[2][2]))
+		var sc := Vector3(b.scale[0], b.scale[1], b.scale[2])
+		# reposo → espacio del hueso, con la escala que ajusta el modelo a las medidas del rig
+		var inv := Basis.from_scale(sc) * basis.transposed()
+		var bind := Transform3D(inv, -(inv * o))
+		skin.add_bind(i, bind)
+		_model_binds.append(bind)
+	model_mesh = MeshInstance3D.new()
+	model_mesh.mesh = mesh
+	model_mesh.skin = skin
+	model_skel.add_child(model_mesh)
+	model_mesh.skeleton = NodePath("..")
+	_model_mat = ShaderMaterial.new()
+	_model_mat.shader = preload("res://shaders/model.gdshader")
+	var fc: Dictionary = mesh.get_meta("face")
+	_model_mat.set_shader_parameter("nose_p", Vector3(fc.nose[0], fc.nose[1], fc.nose[2]))
+	_model_mat.set_shader_parameter("mouth_p", Vector3(fc.mouth[0], fc.mouth[1], fc.mouth[2]))
+	_model_mat.set_shader_parameter("brow_p", Vector3(absf(fc.brow_a[0]), fc.brow_a[1], fc.brow_a[2]))
+	var ol := ShaderMaterial.new()
+	ol.shader = preload("res://shaders/outline.gdshader")
+	ol.set_shader_parameter("thickness", 0.007)
+	_model_mat.next_pass = ol
+	model_mesh.material_override = _model_mat
+	_push_model_marks()
+
+
+static func _limb_basis(a: Vector3, b: Vector3, bend: Vector3) -> Basis:
+	# -Y de a hacia b; Z hacia donde apunta el codo o la rodilla (mismo criterio que model_prep.py)
+	var y := (a - b).normalized()
+	var x := bend.cross(y)
+	if x.length_squared() < 0.000001:
+		x = Vector3.RIGHT.cross(y) if absf(y.x) < 0.9 else Vector3.FORWARD.cross(y)
+	x = x.normalized()
+	return Basis(x, y, x.cross(y).normalized())
+
+
+static func _bend_dir(a: Vector3, mid: Vector3, c: Vector3, fallback: Vector3) -> Vector3:
+	var d := (c - a).normalized()
+	var off := (mid - a) - d * (mid - a).dot(d)
+	if off.length() < 0.004:
+		off = fallback - d * fallback.dot(d)
+	return off.normalized()
 
 
 func _mat(c: Color, rough: float, outline: Material, rim := 0.3) -> ShaderMaterial:
@@ -266,6 +349,11 @@ func apply_pose(pose: Dictionary, foot_l: Vector3, foot_r: Vector3, foot_yaw_l: 
 	var t_head := t_chest * Transform3D(euler(pose.head_rot), NECK_OFS)
 
 	_place("pelvis", t_hips)
+	if model_skel:
+		model_skel.set_bone_pose(0, t_hips)
+		model_skel.set_bone_pose(1, t_spine)
+		model_skel.set_bone_pose(2, t_chest)
+		model_skel.set_bone_pose(3, t_head)
 	_place("sash", t_hips * Transform3D(Basis.IDENTITY, Vector3(0, 0.135, 0)))
 	_place("abdomen", t_spine)
 	_place("chest", t_chest)
@@ -303,6 +391,14 @@ func apply_pose(pose: Dictionary, foot_l: Vector3, foot_r: Vector3, foot_yaw_l: 
 		_place("upper_" + s, Transform3D(up_b, sh))
 		_place("fore_" + s, Transform3D(fo_b, elbow))
 		_place("fist_" + s, Transform3D(fo_b, hand))
+		if model_skel:
+			var bend := _bend_dir(sh, elbow, hand, pole)
+			var ub := _limb_basis(sh, elbow, bend)
+			var fb2 := _limb_basis(elbow, hand, bend)
+			var bi := 4 if s == "l" else 7
+			model_skel.set_bone_pose(bi, Transform3D(ub, sh))
+			model_skel.set_bone_pose(bi + 1, Transform3D(fb2, elbow))
+			model_skel.set_bone_pose(bi + 2, Transform3D(fb2, hand))
 		local_points["hand_" + s] = hand
 		local_points["elbow_" + s] = elbow
 
@@ -332,6 +428,12 @@ func apply_pose(pose: Dictionary, foot_l: Vector3, foot_r: Vector3, foot_yaw_l: 
 			toe_dir = toe_dir.slerp(pt.normalized(), pointed).normalized()
 		var fb := Basis.looking_at(toe_dir, Vector3.UP if abs(toe_dir.y) < 0.95 else Vector3.BACK)
 		_place("foot_" + s, Transform3D(fb, ankle))
+		if model_skel:
+			var bend := _bend_dir(hip, knee, ankle, knee_pole)
+			var bi := 10 if s == "l" else 13
+			model_skel.set_bone_pose(bi, Transform3D(_limb_basis(hip, knee, bend), hip))
+			model_skel.set_bone_pose(bi + 1, Transform3D(_limb_basis(knee, ankle, bend), knee))
+			model_skel.set_bone_pose(bi + 2, Transform3D(fb, ankle))
 		local_points["foot_" + s] = ankle + fb * Vector3(0, -0.02, -0.08)
 		local_points["knee_" + s] = knee
 
@@ -427,6 +529,8 @@ func _push_marks(d: Dictionary) -> void:
 ## Deja una marca (moretón en piel, sangre en ropa) en la pieza más cercana al punto.
 ## Mancha de sangre (no moretón) en la pieza más cercana: goteo y salpicaduras.
 func add_blood(world_p: Vector3, amount: float, max_dist := 0.35) -> void:
+	if model_skel:
+		_model_add(_model_bloods, world_p, amount, 1.0, 0.5)
 	var best := ""
 	var best_d := max_dist
 	for part in _damage_parts:
@@ -467,6 +571,8 @@ func add_mark(world_p: Vector3, amount: float, gear_only := false) -> String:
 			best = part
 	if best == "" or best_d > 0.45:
 		return ""
+	if model_skel:
+		_model_add(_model_marks, world_p, amount * 0.8, 1.45, 0.7)
 	# la camiseta y la piel de debajo reciben el mismo golpe
 	var layer := {"top_chest": "chest", "top_abs": "abdomen", "chest": "top_chest", "abdomen": "top_abs"}
 	if layer.has(best) and _damage_parts.has(layer[best]):
@@ -507,7 +613,65 @@ func _mark_part(best: String, world_p: Vector3, amount: float) -> void:
 	_push_marks(d)
 
 
+## Punto del mundo → posición de reposo del modelo (por el hueso más cercano).
+func _model_rest_point(world_p: Vector3) -> Vector3:
+	var lp := model_skel.global_transform.affine_inverse() * world_p
+	var best := 0
+	var best_d := 99.0
+	for i in MODEL_BONES.size():
+		var t := model_skel.get_bone_pose(i)
+		# distancia al tramo del hueso: el tronco y la cabeza crecen hacia +Y, los miembros hacia -Y
+		var a := t.origin
+		var b := t * (MODEL_SEG[i] as Vector3)
+		var ab := b - a
+		var tt := clampf((lp - a).dot(ab) / maxf(ab.length_squared(), 0.0001), 0.0, 1.0)
+		var d := lp.distance_to(a + ab * tt)
+		if d < best_d:
+			best_d = d
+			best = i
+	var bind: Transform3D = _model_binds[best]
+	return bind.affine_inverse() * (model_skel.get_bone_pose(best).affine_inverse() * lp)
+
+
+func _model_add(arr: Array, world_p: Vector3, amount: float, cap: float, merge: float) -> void:
+	var rp := _model_rest_point(world_p)
+	for i in arr.size():
+		var m: Vector4 = arr[i]
+		if Vector3(m.x, m.y, m.z).distance_to(rp) < 0.075 * merge:
+			arr[i] = Vector4(m.x, m.y, m.z, minf(cap, m.w + amount))
+			_push_model_marks()
+			return
+	if arr.size() >= 10:
+		var low := 0
+		for i in arr.size():
+			if (arr[i] as Vector4).w < (arr[low] as Vector4).w:
+				low = i
+		arr.remove_at(low)
+	arr.append(Vector4(rp.x, rp.y, rp.z, minf(cap, amount)))
+	_push_model_marks()
+
+
+func _push_model_marks() -> void:
+	if _model_mat == null:
+		return
+	for pair in [["marks", _model_marks], ["bloods", _model_bloods]]:
+		var arr: Array = (pair[1] as Array).duplicate()
+		while arr.size() < 10:
+			arr.append(Vector4(99, 99, 99, 0))
+		_model_mat.set_shader_parameter(pair[0], arr)
+
+
 func update_face(sweat: float) -> void:
+	if _model_mat:
+		_model_mat.set_shader_parameter("nose_blood", face.nose)
+		_model_mat.set_shader_parameter("lip_blood", face.lip)
+		_model_mat.set_shader_parameter("cut_amount", face.cut)
+		_model_mat.set_shader_parameter("cut_side", face.cut_side)
+		_model_mat.set_shader_parameter("smear", face.smear * (0.5 if blood_mode == 1 else 1.0))
+		_model_mat.set_shader_parameter("swell_l", face.swell_l)
+		_model_mat.set_shader_parameter("swell_r", face.swell_r)
+		_model_mat.set_shader_parameter("blood_on", 0.0 if blood_mode == 0 else 1.0)
+		_model_mat.set_shader_parameter("sweat", sweat)
 	var fm: ShaderMaterial = _damage_parts["head"].mat
 	var on := 0.0 if blood_mode == 0 else 1.0
 	fm.set_shader_parameter("nose_blood", face.nose)
@@ -532,6 +696,9 @@ func clear_damage() -> void:
 		(d.marks as Array).clear()
 		(d.bloods as Array).clear()
 		_push_marks(d)
+	_model_marks.clear()
+	_model_bloods.clear()
+	_push_model_marks()
 	face = {"nose": 0.0, "lip": 0.0, "cut": 0.0, "cut_side": 1.0, "swell_l": 0.0, "swell_r": 0.0, "smear": 0.0}
 	if not _damage_parts.is_empty():
 		update_face(0.0)

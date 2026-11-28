@@ -42,6 +42,8 @@ func _process(_d: float) -> bool:
 	test_combos()
 	print("== Física parcial, vibración, remate de cámara y repetición")
 	test_v4()
+	print("== Modelo importado (Nico)")
+	test_model()
 	print("== Audio (ElevenLabs)")
 	test_audio()
 	print("== Combate completo (IA contra jugador guionizado)")
@@ -358,6 +360,57 @@ func test_new() -> void:
 	f.reset(Vector3(0, 0, -1), Vector3(0, 0, 1))
 	ok(f.rig.face.nose == 0.0 and f.head_dmg == 0.0, "la revancha empieza sin heridas")
 	_run(30)
+
+
+func _skin_point(rig: FighterRig, bone: int, rest: Vector3) -> Vector3:
+	return rig.model_skel.get_bone_pose(bone) * (rig._model_binds[bone] * rest)
+
+
+func test_model() -> void:
+	var p: Fighter = main.player
+	var f: Fighter = main.foe
+	var rig := p.rig
+	ok(rig.model_skel != null and rig.model_skel.get_bone_count() == 16, "el jugador usa el modelo con 16 huesos")
+	ok(rig.model_mesh.skin.get_bind_count() == 16, "la piel del modelo enlaza los 16 huesos")
+	ok(f.rig.model_skel == null, "el rival sigue con el cuerpo procedimental")
+	var hidden := true
+	for part in rig._parts:
+		hidden = hidden and not (rig._parts[part] as Node3D).visible
+	ok(hidden, "las piezas procedimentales del jugador están ocultas")
+	var j: Dictionary = rig.model_mesh.mesh.get_meta("joints")
+	var jv := func(k: String) -> Vector3: return Vector3(j[k][0], j[k][1], j[k][2])
+	var worst := 0.0
+	var finite := true
+	_place(p, f, 1.0)
+	for mv in ["jab", "cross", "roundhouse", "spin_kick", "knee"]:
+		p.start_move(mv)
+		for k in 30:
+			_run(1)
+			for s in ["l", "r"]:
+				var u := 4 if s == "l" else 7
+				var t := 10 if s == "l" else 13
+				# cada articulación cae en el mismo sitio desde los dos huesos que la comparten
+				var e1 := _skin_point(rig, u, jv.call("el_" + s))
+				var e2 := _skin_point(rig, u + 1, jv.call("el_" + s))
+				var w1 := _skin_point(rig, u + 1, jv.call("wr_" + s))
+				var k1 := _skin_point(rig, t, jv.call("knee_" + s))
+				var k2 := _skin_point(rig, t + 1, jv.call("knee_" + s))
+				worst = maxf(worst, maxf(e1.distance_to(e2), k1.distance_to(k2)))
+				worst = maxf(worst, w1.distance_to(rig.local_points["hand_" + s]))
+				worst = maxf(worst, e1.distance_to(rig.local_points["elbow_" + s]))
+				finite = finite and e1.is_finite() and k1.is_finite()
+		_run(30)
+		_place(p, f, 1.0)
+	ok(finite, "huesos del modelo sin valores inválidos durante golpes y patadas")
+	ok(worst < 0.012, "codos, rodillas y muñecas del modelo coinciden con el rig (máx %.4f m)" % worst)
+	rig.clear_damage()
+	rig.add_mark(rig.points.chest + (-p.global_transform.basis.z) * 0.1, 0.8)
+	rig.add_blood(rig.points.head, 0.6)
+	ok(rig._model_marks.size() == 1 and rig._model_bloods.size() == 1, "los golpes marcan el modelo")
+	var rp: Vector4 = rig._model_marks[0]
+	ok(rp.y > 1.0 and rp.y < 1.6, "la marca del pecho cae a la altura del pecho del modelo (%.2f)" % rp.y)
+	rig.clear_damage()
+	ok(rig._model_marks.is_empty() and rig._model_bloods.is_empty(), "la revancha limpia el modelo")
 
 
 func _body_inside(f: Fighter) -> bool:

@@ -7,7 +7,7 @@ const PLAYER_PALETTE := {
 	"skin": Color(0.62, 0.42, 0.31), "top": Color(0.88, 0.86, 0.81), "pants": Color(0.15, 0.17, 0.23),
 	"wrap": Color(0.86, 0.82, 0.73), "accent": Color(0.08, 0.48, 0.5), "hair": Color(0.07, 0.05, 0.05),
 	"shoe": Color(0.12, 0.12, 0.14), "sole": Color(0.9, 0.88, 0.84), "bun": true, "rim": Color(1.0, 0.74, 0.5),
-	"bulk": 0.97, "jaw": 0.92,
+	"bulk": 0.97, "jaw": 0.92, "model": "res://assets/characters/nico/nico.res",
 }
 const FOE_PALETTE := {
 	"skin": Color(0.86, 0.68, 0.57), "pants": Color(0.1, 0.09, 0.1), "wrap": Color(0.62, 0.12, 0.12),
@@ -81,9 +81,9 @@ func _ready() -> void:
 	world.add_child(arena)
 	arena.build()
 	player = Fighter.new()
-	player.name = "Luz"
+	player.name = "Nico"
 	world.add_child(player)
-	player.setup("LUZ", PLAYER_PALETTE, Vector3(0, 0, 1.4), Vector3(0, 0, -1))
+	player.setup("NICO", PLAYER_PALETTE, Vector3(0, 0, 1.4), Vector3(0, 0, -1))
 	player.is_player = true
 	foe = Fighter.new()
 	foe.name = "Ceniza"
@@ -760,7 +760,7 @@ func start_fight() -> void:
 	touch.enabled = true
 	hud.visible = true
 	_set_phase("intro")
-	_banner_show("LUZ  vs  CENIZA", 1.3)
+	_banner_show("NICO  vs  CENIZA", 1.3)
 	Sfx.play("ui_tap", -6.0, 1.0, 0.0)
 	Sfx.set_music("combat", 2.2)
 	if not _shown_hint:
@@ -780,7 +780,7 @@ func _show_result() -> void:
 	Sfx.announcer("vo_victoria" if won else "vo_derrota", -1.0)
 	Sfx.set_music("menu", 3.0)
 	(_result_root.get_node("Title") as Label).text = "VICTORIA" if won else "DERROTA"
-	(_result_root.get_node("Sub") as Label).text = "Ceniza ha caído." if won else "Luz ha caído."
+	(_result_root.get_node("Sub") as Label).text = "Ceniza ha caído." if won else "Nico ha caído."
 
 
 func _toggle_pause() -> void:
@@ -875,7 +875,7 @@ func _build_ui() -> void:
 	spacer.custom_minimum_size = Vector2(0, 18)
 	col.add_child(spacer)
 	col.add_child(_label("ENFRENTAMIENTO", 16, Color(1, 0.85, 0.7, 0.7)))
-	col.add_child(_label("Luz  vs  Ceniza  ·  Azotea del Farol", 28, Color(1, 1, 1)))
+	col.add_child(_label("Nico  vs  Ceniza  ·  Azotea del Farol", 28, Color(1, 1, 1)))
 	var diff_row := HBoxContainer.new()
 	diff_row.add_theme_constant_override("separation", 10)
 	col.add_child(diff_row)

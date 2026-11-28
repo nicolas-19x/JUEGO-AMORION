@@ -10,7 +10,11 @@ está puesto en que cada golpe se sienta bien.
 
 ## Estado
 
-**Versión 0.5.0: audio completo con ElevenLabs** (golpes, voces de los luchadores,
+![Nico](docs/capturas/nico.jpg)
+
+**Versión 0.6.0: Nico, modelo 3D importado, es el jugador** (el GLB sin esqueleto se
+prepara con `tools/model_prep.py` y `tools/build_model.gd`; ver [docs/ESTADO.md](docs/ESTADO.md)).
+Antes, en la 0.5.0: **audio completo con ElevenLabs** (golpes, voces de los luchadores,
 locutor, música de menú y de combate, ambiente; ver [docs/AUDIO.md](docs/AUDIO.md)).
 Antes, en la 0.4.0: Cuerpos esculpidos (anatomía, cara, pelo, barba, ropa que
 se rompe), física parcial en las reacciones, vibración con matices, plano de
@@ -86,4 +90,4 @@ Efectos, voces y música generados con ElevenLabs (`assets/audio/eleven`, proces
 ## Licencias
 
 Todo el código, las formas, los shaders y los sonidos son propios del proyecto.
-No se usan recursos externos. Tipografía: la fuente por defecto de Godot.
+El modelo de Nico (`assets_src/nico.glb`) lo aportó el autor del proyecto. Tipografía: la fuente por defecto de Godot.
